@@ -40,14 +40,17 @@
 
       (goog.async.nextTick flush-invalidated!)
       )
-    (swap! invalidated-react-elements conj react-component)))
+    (swap! invalidated-react-elements conj react-component)
+    :value-unchanged))
 
 (deftype ReactHitcher [graph react-component ^:mutable requests]
   proto/IBatching
-  (-request-effect [_ effect]
-    (proto/-request-effect graph effect))
+  (-request-effects [_ effects]
+    (proto/-request-effects graph effects))
   (-request-invalidations [_ invalidations]
-    (proto/-request-invalidations graph invalidations))
+    (proto/-request-invalidations graph invalidations) )
+  (take-effects! [_] (proto/take-effects! graph))
+  (take-invalidations! [_] (proto/take-invalidations! graph))
   proto/IDependencyGraph
   (peek-node [this data-selector]
     (proto/peek-node graph data-selector))
