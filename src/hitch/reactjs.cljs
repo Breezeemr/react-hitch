@@ -61,7 +61,7 @@
     (let [n (proto/get-or-create-node graph data-selector)
           changes (proto/node-depend! n (->ReactInvalidateWrapper react-component ))]
       (when-let [[new-effects new-invalidates] changes]
-        (proto/-request-effect graph new-effects)
+        (proto/-request-effects graph new-effects)
         (proto/-request-invalidations graph new-invalidates))
       n)))
 
