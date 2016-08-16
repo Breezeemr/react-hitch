@@ -30,7 +30,7 @@
         (when (.isMounted s)                                ;; react component
           (.forceUpdate s))))))
 (defn flush-invalidated! []
-   (subscriber-notify!))
+   (batchedUpdates subscriber-notify!))
 
 (defrecord ReactInvalidateWrapper [react-component]
   proto/ISubscriber
