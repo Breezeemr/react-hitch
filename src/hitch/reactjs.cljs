@@ -58,12 +58,15 @@
     (proto/create-node! graph data-selector))
   (subscribe-node [this data-selector]
     (set! requests (conj requests data-selector))
-    (let [n (proto/get-or-create-node graph data-selector)
-          changes (proto/node-depend! n (->ReactInvalidateWrapper react-component ))]
-      (when-let [[new-effects new-invalidates] changes]
-        (proto/-request-effects graph new-effects)
-        (proto/-request-invalidations graph new-invalidates))
-      n)))
+    (if react-component
+      (let [n (proto/get-or-create-node graph data-selector)
+            changes (proto/node-depend! n (->ReactInvalidateWrapper react-component))]
+        (when-let [[new-effects new-invalidates] changes]
+          (proto/-request-effects graph new-effects)
+          (proto/-request-invalidations graph new-invalidates))
+        n)
+      (do  (prn data-selector "read outside of react render")
+        (proto/get-or-create-node graph data-selector)))))
 
 
 (defn react-hitcher [graph react-component]
