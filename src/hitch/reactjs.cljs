@@ -17,7 +17,7 @@
 
 
 
-
+(def ^:dynamic react-read-mode nil)
 (defonce invalidated-selectors (atom (transient #{})))
 (def queued? false)
 (defonce selector->component (atom {}))
@@ -40,10 +40,11 @@
 (def ReactManager (reify
                     proto/ExternalDependent
                     (-change-notify [this graph selector-changed]
-                      (when-not queued?
-                        (set! queued? true)
-                        (goog.async.nextTick flush-invalidated!))
-                      (swap! invalidated-selectors conj! selector-changed))))
+                      (when-not react-read-mode
+                        (when-not queued?
+                          (set! queued? true)
+                          (goog.async.nextTick flush-invalidated!))
+                        (swap! invalidated-selectors conj! selector-changed)))))
 
 (defn -add-dep [this react-component selector]
   (swap! selector->component update selector (fnil conj #{}) react-component))
@@ -65,11 +66,13 @@
   (subscribe-node [this data-selector]
     (set! requests (conj requests data-selector))
     (if react-component
-      (let [n (binding [proto/*read-mode* true] (proto/get-or-create-node graph data-selector))]
-        (proto/-add-external-dependent n ReactManager)
-        (-add-dep ReactManager react-component data-selector)
-        (graph/normalize-tx! graph)
-        n)
+      (binding [proto/*read-mode* true
+                react-read-mode true]
+        (let [n (proto/get-or-create-node graph data-selector)]
+          (graph/normalize-tx! graph)
+          (proto/-add-external-dependent n ReactManager)
+          (-add-dep ReactManager react-component data-selector)
+          n))
       (do  (prn data-selector "read outside of react render")
         (proto/get-or-create-node graph data-selector)))))
 
