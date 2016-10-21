@@ -1,4 +1,4 @@
-(defproject react-hitch "0.1.4-SNAPSHOT"
+(defproject react-hitch "0.1.6-SNAPSHOT"
   :description "A Clojurescript library designed to manage and cache derived data."
   :url "https://github.com/Breezeemr/react-hitch"
   :license {:name "Eclipse Public License"
@@ -9,7 +9,7 @@
   :dependencies [[org.clojure/clojure "1.8.0" :scope "provided"]
                  [org.clojure/clojurescript "1.9.93" :scope "provided"]
                  [cljsjs/react-dom "0.14.0-1"]
-                 [com.breezeehr/hitch "0.1.4-SNAPSHOT"]]
+                 [com.breezeehr/hitch "0.1.6-SNAPSHOT"]]
   :profiles {:dev {
                    :dependencies [[com.cemerick/piggieback "0.2.1"]    ; needed by figwheel nrepl
                                   [devcards "0.2.1"]]

@@ -1,12 +1,13 @@
 (ns hitch.reactjs
   (:require cljsjs.react
             cljsjs.react.dom
-            [hitch.protocols :as proto]
+            [hitch.protocol :as proto]
             [hitch.graph :as graph]
             [cljs.core.async :as async]
             [clojure.set]
             [goog.async.nextTick]
-            [cljs.core.async.impl.protocols :as impl]))
+            [cljs.core.async.impl.protocols :as impl]
+            [hitch.oldprotocols :as oldproto]))
 
 (def ^not-native batchedUpdates
   "The React batchUpdates addon. Takes one function which should call
@@ -18,17 +19,15 @@
 
 
 (def ^:dynamic react-read-mode nil)
-(defonce invalidated-selectors (atom (transient #{})))
+(defonce invalidated-components (atom (transient #{})))
 (def queued? false)
 (defonce selector->component (atom {}))
 
 (defn subscriber-notify! []
-  (let [selectors (persistent! @invalidated-selectors)
-        map-selector->component @selector->component]
-    (reset! invalidated-selectors (transient #{}))
+  (let [components (persistent! @invalidated-components)]
+    (reset! invalidated-components (transient #{}))
     (set! queued? false)
-    (doseq [s selectors
-            component (map-selector->component s)]
+    (doseq [component components]
       ;; Could be multimethod/protocol instead (e.g.: -receive-subscription-update)?
       (assert (not (undefined? (.-isMounted component))))
       (when (.isMounted component)                                  ;; react component
@@ -37,45 +36,57 @@
 (defn flush-invalidated! []
    (batchedUpdates subscriber-notify!))
 
-(def ReactManager (reify
-                    proto/ExternalDependent
-                    (-change-notify [this graph selector-changed]
-                      (when-not react-read-mode
-                        (when-not queued?
-                          (set! queued? true)
-                          (goog.async.nextTick flush-invalidated!))
-                        (swap! invalidated-selectors conj! selector-changed)))))
+(defn monkeypatch-change-notify-on-all-react! []
+  (extend-type js/React.Component
+    oldproto/ExternalDependent
+    (-change-notify [this]
+      (when-not react-read-mode
+        (when-not queued?
+          (set! queued? true)
+          (goog.async.nextTick flush-invalidated!))
+        (swap! invalidated-components conj! this)))))
 
-(defn -add-dep [this react-component selector]
-  (swap! selector->component update selector (fnil conj #{}) react-component))
-(defn -remove-dep [this react-component selector]
-  (swap! selector->component update selector (fnil disj #{}) react-component)
-  ;(proto/-remove-external-dependent node this)
-  )
+(deftype ReactHitcher [graph react-component
+                       ^:mutable old-requests
+                       ^:mutable not-requested
+                       ^:mutable new-requests
+                       ^:mutable all-requests]
+  ILookup
+  (-lookup [o data-selector]
+    (-lookup o data-selector nil))
+  (-lookup [o data-selector not-found]
+    (-lookup graph data-selector not-found))
+  oldproto/IDependTrack
+  (dget-sel! [this data-selector nf]
+    (if (old-requests data-selector)
+      (set! not-requested (disj! not-requested data-selector))
+      (set! new-requests (conj! new-requests data-selector)))
+    (set! all-requests (conj! all-requests data-selector))
+    (let [v (get this data-selector oldproto/NOT-IN-GRAPH-SENTINEL)]
+      (if (identical? v oldproto/NOT-IN-GRAPH-SENTINEL)
+        (if (satisfies? oldproto/IEagerSelectorResolve graph)
+          (oldproto/attempt-eager-selector-resolution! graph data-selector nf)
+          nf)
+        v) ))
+  (get-depends [this] all-requests)
+  oldproto/IDependencyGraph
+  (apply-commands [_ selector-command-pairs]
+    (oldproto/apply-commands graph selector-command-pairs))
+  oldproto/ITXManager
+  (enqueue-dependency-changes [this]
+    (let [removed-deps not-requested]
+      (oldproto/update-parents graph react-component new-requests not-requested)
+      (let [new-old (reduce disj!
+                            (transient (into old-requests new-requests))
+                            not-requested)]
 
-(deftype ReactHitcher [graph react-component ^:mutable requests]
-  proto/IBatching
-  (-request-invalidations [_ invalidations]
-    (proto/-request-invalidations graph invalidations) )
-  (take-invalidations! [_] (proto/take-invalidations! graph))
-  proto/IDependencyGraph
-  (peek-node [this data-selector]
-    (proto/peek-node graph data-selector))
-  (create-node! [this data-selector]
-    (proto/create-node! graph data-selector))
-  (subscribe-node [this data-selector]
-    (set! requests (conj requests data-selector))
-    (if react-component
-      (binding [proto/*read-mode* true
-                react-read-mode true]
-        (let [n (proto/get-or-create-node graph data-selector)]
-          (graph/normalize-tx! graph)
-          (proto/-add-external-dependent n ReactManager)
-          (-add-dep ReactManager react-component data-selector)
-          n))
-      (do  (prn data-selector "read outside of react render")
-        (proto/get-or-create-node graph data-selector)))))
+        (set! old-requests (persistent! new-old))
+        (set! not-requested new-old)
+        (set! new-requests (transient #{}))
+        (set! all-requests (transient #{})))
+      removed-deps
+      )))
 
 
-(defn react-hitcher [graph react-component]
-  (->ReactHitcher graph react-component #{}))
+(defn react-hitcher [graph react-component olddeps]
+  (->ReactHitcher graph react-component olddeps (transient olddeps) (transient #{}) (transient #{})))
