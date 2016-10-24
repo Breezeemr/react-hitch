@@ -90,3 +90,68 @@
 
 (defn react-hitcher [graph react-component olddeps]
   (->ReactHitcher graph react-component olddeps (transient olddeps) (transient #{}) (transient #{})))
+
+(defn get-react-hitcher [graph react-component]
+  (if-let [react-manager (.-react-manager react-component)]
+    react-manager
+    (let [react-manager (react-hitcher graph react-component #{})]
+        (set! (.-react-manager react-component) react-manager)
+        react-manager)))
+
+(defn react-hitch
+  ([graph react-component xfn]
+   (try
+     (let [reacttx (get-react-hitcher graph react-component)]
+       (binding [graph/*tx-manager* reacttx] (xfn graph)))
+     (catch :default ex (if (identical? oldproto/berror ex )
+                          oldproto/NOT-FOUND-SENTINEL
+                          (throw ex)))))
+  ([graph react-component xfn a]
+   (try
+     (let [reacttx (get-react-hitcher graph react-component)]
+       (binding [graph/*tx-manager* reacttx] (xfn graph a)))
+     (catch :default ex (if (identical? oldproto/berror ex )
+                          oldproto/NOT-FOUND-SENTINEL
+                          (throw ex)))))
+  ([graph react-component xfn a b]
+   (try
+     (let [reacttx (get-react-hitcher graph react-component)]
+       (binding [graph/*tx-manager* reacttx] (xfn graph a b)))
+     (catch :default ex (if (identical? oldproto/berror ex )
+                          oldproto/NOT-FOUND-SENTINEL
+                          (throw ex)))))
+  ([graph react-component xfn a b c]
+   (try
+     (let [reacttx (get-react-hitcher graph react-component)]
+       (binding [graph/*tx-manager* reacttx] (xfn graph a b c)))
+     (catch :default ex (if (identical? oldproto/berror ex )
+                          oldproto/NOT-FOUND-SENTINEL
+                          (throw ex)))))
+  ([graph react-component xfn a b c d]
+   (try
+     (let [reacttx (get-react-hitcher graph react-component)]
+       (binding [graph/*tx-manager* reacttx] (xfn graph a b c d)))
+     (catch :default ex (if (identical? oldproto/berror ex )
+                          oldproto/NOT-FOUND-SENTINEL
+                          (throw ex)))))
+  ([graph react-component xfn a b c d e]
+   (try
+     (let [reacttx (get-react-hitcher graph react-component)]
+       (binding [graph/*tx-manager* reacttx] (xfn graph a b c d e)))
+     (catch :default ex (if (identical? oldproto/berror ex )
+                          oldproto/NOT-FOUND-SENTINEL
+                          (throw ex)))))
+  ([graph react-component xfn a b c d e f]
+   (try
+     (let [reacttx (get-react-hitcher graph react-component)]
+       (binding [graph/*tx-manager* reacttx] (xfn graph a b c d e f)))
+     (catch :default ex (if (identical? oldproto/berror ex )
+                          oldproto/NOT-FOUND-SENTINEL
+                          (throw ex)))))
+  ([graph react-component xfn a b c d e f g]
+   (try
+     (let [reacttx (get-react-hitcher graph react-component)]
+       (binding [graph/*tx-manager* reacttx] (xfn graph a b c d e f g)))
+     (catch :default ex (if (identical? oldproto/berror ex )
+                          oldproto/NOT-FOUND-SENTINEL
+                          (throw ex))))))
