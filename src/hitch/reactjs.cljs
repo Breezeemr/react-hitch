@@ -46,6 +46,15 @@
           (goog.async.nextTick flush-invalidated!))
         (swap! invalidated-components conj! this)))))
 
+(defrecord ComponentWrapper [react-component]
+  oldproto/ExternalDependent
+  (-change-notify [this]
+    (when-not react-read-mode
+      (when-not queued?
+        (set! queued? true)
+        (goog.async.nextTick flush-invalidated!))
+      (swap! invalidated-components conj! react-component))))
+
 (deftype ReactHitcher [graph react-component
                        ^:mutable old-requests
                        ^:mutable not-requested
@@ -75,21 +84,20 @@
   oldproto/ITXManager
   (enqueue-dependency-changes [this]
     (let [new-deps (persistent! new-requests)
-          removed-deps (persistent! not-requested)]
-      (oldproto/update-parents graph this new-deps removed-deps)
-      (let [new-old (reduce disj!
-                            (transient (into old-requests new-deps))
-                            removed-deps)]
-
-        (set! old-requests (persistent! new-old))
-        (set! not-requested (transient old-requests))
-        (set! new-requests (transient #{}))
-        (set! all-requests (transient #{})))
+          removed-deps (persistent! not-requested)
+          new-old (reduce disj!
+                          (transient (into old-requests new-deps))
+                          removed-deps)]
+      (set! old-requests (persistent! new-old))
+      (set! not-requested (transient old-requests))
+      (set! new-requests (transient #{}))
+      (set! all-requests (transient #{}))
+      (oldproto/update-parents graph react-component new-deps removed-deps)
       removed-deps)))
 
 
 (defn react-hitcher [graph react-component olddeps]
-  (->ReactHitcher graph react-component olddeps (transient olddeps) (transient #{}) (transient #{})))
+  (->ReactHitcher graph (->ComponentWrapper react-component) olddeps (transient olddeps) (transient #{}) (transient #{})))
 
 (defn get-react-hitcher [graph react-component]
   (if-let [react-manager (.-react-manager react-component)]
@@ -102,56 +110,80 @@
   ([graph react-component nf xfn]
    (try
      (let [reacttx (get-react-hitcher graph react-component)]
-       (binding [graph/*tx-manager* reacttx] (xfn graph)))
+       (binding [graph/*tx-manager* reacttx]
+         (let [v (xfn reacttx)]
+           (oldproto/enqueue-dependency-changes reacttx)
+           v)))
      (catch :default ex (if (identical? oldproto/berror ex )
                           nf
                           (throw ex)))))
   ([graph react-component nf xfn a]
    (try
      (let [reacttx (get-react-hitcher graph react-component)]
-       (binding [graph/*tx-manager* reacttx] (xfn graph a)))
+       (binding [graph/*tx-manager* reacttx]
+         (let [v (xfn reacttx a)]
+           (oldproto/enqueue-dependency-changes reacttx)
+           v)))
      (catch :default ex (if (identical? oldproto/berror ex )
                           nf
                           (throw ex)))))
   ([graph react-component nf xfn a b]
    (try
      (let [reacttx (get-react-hitcher graph react-component)]
-       (binding [graph/*tx-manager* reacttx] (xfn graph a b)))
+       (binding [graph/*tx-manager* reacttx]
+         (let [v (xfn reacttx a b)]
+           (oldproto/enqueue-dependency-changes reacttx)
+           v)))
      (catch :default ex (if (identical? oldproto/berror ex )
                           nf
                           (throw ex)))))
   ([graph react-component nf xfn a b c]
    (try
      (let [reacttx (get-react-hitcher graph react-component)]
-       (binding [graph/*tx-manager* reacttx] (xfn graph a b c)))
+       (binding [graph/*tx-manager* reacttx]
+         (let [v (xfn reacttx a)]
+           (oldproto/enqueue-dependency-changes reacttx)
+           v) ))
      (catch :default ex (if (identical? oldproto/berror ex )
                           nf
                           (throw ex)))))
   ([graph react-component nf xfn a b c d]
    (try
      (let [reacttx (get-react-hitcher graph react-component)]
-       (binding [graph/*tx-manager* reacttx] (xfn graph a b c d)))
+       (binding [graph/*tx-manager* reacttx]
+         (let [v (xfn reacttx a b c d)]
+           (oldproto/enqueue-dependency-changes reacttx)
+           v)))
      (catch :default ex (if (identical? oldproto/berror ex )
                           nf
                           (throw ex)))))
   ([graph react-component nf xfn a b c d e]
    (try
      (let [reacttx (get-react-hitcher graph react-component)]
-       (binding [graph/*tx-manager* reacttx] (xfn graph a b c d e)))
+       (binding [graph/*tx-manager* reacttx]
+         (let [v (xfn reacttx a b c d e)]
+           (oldproto/enqueue-dependency-changes reacttx)
+           v)))
      (catch :default ex (if (identical? oldproto/berror ex )
                           nf
                           (throw ex)))))
   ([graph react-component nf xfn a b c d e f]
    (try
      (let [reacttx (get-react-hitcher graph react-component)]
-       (binding [graph/*tx-manager* reacttx] (xfn graph a b c d e f)))
+       (binding [graph/*tx-manager* reacttx]
+         (let [v (xfn reacttx a b c d e f)]
+           (oldproto/enqueue-dependency-changes reacttx)
+           v)))
      (catch :default ex (if (identical? oldproto/berror ex )
                           nf
                           (throw ex)))))
   ([graph react-component nf xfn a b c d e f g]
    (try
      (let [reacttx (get-react-hitcher graph react-component)]
-       (binding [graph/*tx-manager* reacttx] (xfn graph a b c d e f g)))
+       (binding [graph/*tx-manager* reacttx]
+         (let [v (xfn reacttx a b c d e f g)]
+           (oldproto/enqueue-dependency-changes reacttx)
+           v)))
      (catch :default ex (if (identical? oldproto/berror ex )
                           nf
                           (throw ex))))))
