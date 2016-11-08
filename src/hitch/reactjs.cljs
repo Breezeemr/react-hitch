@@ -5,9 +5,9 @@
             [hitch.graph :as graph]
             [cljs.core.async :as async]
             [clojure.set]
-            [goog.async.nextTick]
             [cljs.core.async.impl.protocols :as impl]
-            [hitch.oldprotocols :as oldproto]))
+            [hitch.oldprotocols :as oldproto])
+  (:import (goog.async nextTick)))
 
 (def ^not-native batchedUpdates
   "The React batchUpdates addon. Takes one function which should call
@@ -43,7 +43,7 @@
       (when-not react-read-mode
         (when-not queued?
           (set! queued? true)
-          (goog.async.nextTick flush-invalidated!))
+          (nextTick flush-invalidated!))
         (swap! invalidated-components conj! this)))))
 
 (defrecord ComponentWrapper [react-component]
@@ -52,7 +52,7 @@
     (when-not react-read-mode
       (when-not queued?
         (set! queued? true)
-        (goog.async.nextTick flush-invalidated!))
+        (nextTick flush-invalidated!))
       (swap! invalidated-components conj! react-component))))
 
 (deftype ReactHitcher [graph react-component
