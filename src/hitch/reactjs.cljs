@@ -20,7 +20,7 @@
 
 (def ^:dynamic react-read-mode nil)
 (defonce invalidated-components (atom (transient #{})))
-(def queued? (transient false))
+(def queued? (volatile! false))
 (defonce selector->component (atom {}))
 
 (defn subscriber-notify! []
