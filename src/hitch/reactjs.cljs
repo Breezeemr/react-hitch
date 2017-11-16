@@ -20,13 +20,13 @@
 
 (def ^:dynamic react-read-mode nil)
 (defonce invalidated-components (atom (transient #{})))
-(def queued? false)
+(def queued? (transient false))
 (defonce selector->component (atom {}))
 
 (defn subscriber-notify! []
   (let [components (persistent! @invalidated-components)]
     (reset! invalidated-components (transient #{}))
-    (set! queued? false)
+    (vreset! queued? false)
     (doseq [component components]
       ;; Could be multimethod/protocol instead (e.g.: -receive-subscription-update)?
       (assert (not (undefined? (.-isMounted component))))
@@ -41,8 +41,8 @@
     oldproto/ExternalDependent
     (-change-notify [this]
       (when-not react-read-mode
-        (when-not queued?
-          (set! queued? true)
+        (when-not @queued?
+          (vreset! queued? true)
           (nextTick flush-invalidated!))
         (swap! invalidated-components conj! this)))))
 
@@ -50,8 +50,8 @@
   oldproto/ExternalDependent
   (-change-notify [this]
     (when-not react-read-mode
-      (when-not queued?
-        (set! queued? true)
+      (when-not @queued?
+        (vreset! queued? true)
         (nextTick flush-invalidated!))
       (swap! invalidated-components conj! react-component))))
 
