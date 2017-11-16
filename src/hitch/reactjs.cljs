@@ -5,9 +5,9 @@
             [hitch.graph :as graph]
             [cljs.core.async :as async]
             [clojure.set]
-            [goog.async.nextTick]
             [cljs.core.async.impl.protocols :as impl]
-            [hitch.oldprotocols :as oldproto]))
+            [hitch.oldprotocols :as oldproto])
+  (:import (goog.async nextTick)))
 
 (def ^not-native batchedUpdates
   "The React batchUpdates addon. Takes one function which should call
@@ -20,13 +20,13 @@
 
 (def ^:dynamic react-read-mode nil)
 (defonce invalidated-components (atom (transient #{})))
-(def queued? (transient false))
+(def queued? false)
 (defonce selector->component (atom {}))
 
 (defn subscriber-notify! []
   (let [components (persistent! @invalidated-components)]
     (reset! invalidated-components (transient #{}))
-    (vreset! queued? false)
+    (set! queued? false)
     (doseq [component components]
       ;; Could be multimethod/protocol instead (e.g.: -receive-subscription-update)?
       (assert (not (undefined? (.-isMounted component))))
@@ -41,18 +41,18 @@
     oldproto/ExternalDependent
     (-change-notify [this]
       (when-not react-read-mode
-        (when-not @queued?
-          (vreset! queued? true)
-          (goog.async.nextTick flush-invalidated!))
+        (when-not queued?
+          (set! queued? true)
+          (nextTick flush-invalidated!))
         (swap! invalidated-components conj! this)))))
 
 (defrecord ComponentWrapper [react-component]
   oldproto/ExternalDependent
   (-change-notify [this]
     (when-not react-read-mode
-      (when-not @queued?
-        (vreset! queued? true)
-        (goog.async.nextTick flush-invalidated!))
+      (when-not queued?
+        (set! queued? true)
+        (nextTick flush-invalidated!))
       (swap! invalidated-components conj! react-component))))
 
 (deftype ReactHitcher [graph react-component
