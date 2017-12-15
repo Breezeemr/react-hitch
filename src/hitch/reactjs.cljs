@@ -1,6 +1,6 @@
 (ns hitch.reactjs
   (:require cljsjs.react
-            cljsjs.react.dom
+            cljsjs.react-dom
             [hitch.protocol :as proto]
             [hitch.graph :as graph]
             [cljs.core.async :as async]
@@ -29,9 +29,7 @@
     (vreset! queued? false)
     (doseq [component components]
       ;; Could be multimethod/protocol instead (e.g.: -receive-subscription-update)?
-      (assert (not (undefined? (.-isMounted component))))
-      (when (.isMounted component)                                  ;; react component
-        (.forceUpdate component)))))
+      (.forceUpdate component))))
 
 (defn flush-invalidated! []
    (batchedUpdates subscriber-notify!))
