@@ -1,4 +1,4 @@
-(defproject react-hitch "0.1.6.1-SNAPSHOT"
+(defproject react-hitch "0.1.7-SNAPSHOT"
   :description "A Clojurescript library designed to manage and cache derived data."
   :url "https://github.com/Breezeemr/react-hitch"
   :license {:name "Eclipse Public License"
