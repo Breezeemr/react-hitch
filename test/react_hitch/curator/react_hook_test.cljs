@@ -12,11 +12,6 @@
              :refer [registry-resolver]]
             [devcards.core :refer-macros [deftest]]))
 
-(reg/def-registered-selector constant-spec' constant-spec constant-impl)
-
-(defn Constant [v]
-  (sel-proto/sel constant-spec' v))
-
 (def results (atom []))
 
 (defmethod graph-proto/run-effect :rerender-components
