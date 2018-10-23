@@ -4,11 +4,13 @@ A Clojure library designed to ... well, that part is up to you.
 
 ## Usage
 
-FIXME
+``` shell
+lein figwheel devcards
+```
+
+Then go to http://localhost:3449/cards.html
+
 
 ## License
 
-Copyright © 2016 FIXME
-
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Copyright © 2018 Breeze EHR
