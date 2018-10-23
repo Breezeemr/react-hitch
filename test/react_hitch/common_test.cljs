@@ -4,6 +4,7 @@
 
 (defn return-constant [gv-tracker v]
   v)
+
 (sel-proto/def-selector-spec constant-spec
   :not-machine
   :hitch.selector.spec/canonical-form :hitch.selector.spec.canonical-form/positional

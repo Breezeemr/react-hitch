@@ -14,9 +14,15 @@
 
 (def results (atom []))
 
-(defmethod graph-proto/run-effect :rerender-components
-  [gm effect]
-  (swap! results conj effect))
+(defn fixture [f]
+  (defmethod graph-proto/run-effect :rerender-components
+    [gm effect]
+    (prn "effect! hook test")
+    (swap! results conj effect))
+  (f)
+  (remove-method graph-proto/run-effect :rerender-components))
+
+(use-fixtures :once fixture)
 
 (def gctors
   [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver))]])

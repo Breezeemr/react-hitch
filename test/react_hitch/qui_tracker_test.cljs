@@ -1,5 +1,5 @@
 (ns react-hitch.qui-tracker-test
-  (:require [clojure.test :refer [is testing]]
+  (:require [clojure.test :refer [is testing use-fixtures]]
             [react-hitch.qui-tracker :as qui]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.graph :as h]
@@ -10,9 +10,15 @@
 
 (def results (atom []))
 
-(defmethod graph-proto/run-effect :rerender-components
-  [gm effect]
-  (swap! results conj effect))
+(defn fixture [f]
+  (defmethod graph-proto/run-effect :rerender-components
+    [gm effect]
+    (prn "effect! in qui tracker")
+    (swap! results conj effect))
+  (f)
+  (remove-method graph-proto/run-effect :rerender-components))
+
+(use-fixtures :once fixture)
 
 (def gctors
   [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver))]])
@@ -28,7 +34,6 @@
       (reset! results [])
       (is (= value (qui/qui-hitch graph :nf :component render-function value services)))
       (is (= [] @results)))))
-
 
 (defn render-with-deps [value rtx services]
   @(h/select-sel! rtx value))
@@ -51,4 +56,3 @@
       (h/apply-commands g [[mv-sel [:set-value 7]]])
       (is (= [{:type :rerender-components, :components #{:component}}]
              @results)))))
-
