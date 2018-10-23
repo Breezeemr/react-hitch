@@ -15,6 +15,7 @@
                                   [devcards "0.2.5"]
                                   [com.bhauman/cljs-test-display "0.1.1"]
                                   [com.bhauman/figwheel-main "0.1.9"]]
+                   :source-paths ["test" "devcards"]
                    :aliases      {"fig"       ["trampoline" "run" "-m" "figwheel.main"]
                                   "build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]}}}
   :source-paths ["src"])
