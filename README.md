@@ -8,10 +8,10 @@ A Clojure library designed to ... well, that part is up to you.
 lein build-dev
 ```
 
-This will open up a browser for you. The default page will open up a repl. You can also view http://localhost:9500/test.html to load the tests in a test runner.
+This will open up the default page which will connect a repl. Also noteworthy:
 
-Then go to http://localhost:3449/cards.html
-
+- http://localhost:9500/devcards.html
+- http://localhost:9500/test.html
 
 ## License
 
