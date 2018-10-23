@@ -40,7 +40,7 @@
     (testing "updating an observed value will batch rerender all components"
       (let [g          (gctor)
             mv-sel     (mutable-var :mv)
-            components (set (range 1000))]
+            components (set (range 100))]
         (reset! results [])
         (doseq [c components] (reset-rc-parents g c #{mv-sel}))
 
