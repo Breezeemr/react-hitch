@@ -12,7 +12,7 @@
                  [com.breezeehr/hitch2 "0.1.0-SNAPSHOT"]]
   :profiles {:dev {
                    :dependencies [[cider/piggieback "0.3.9"]    ; needed by figwheel nrepl
-                                  [devcards "0.2.1"]]
+                                  [devcards "0.2.5"]]
                    :plugins        [[lein-figwheel "0.5.16"]]
                    :resource-paths ["dev-resources" "target/devcards"]
                    :figwheel       {:css-dirs       ["dev-resources/public/css"]
