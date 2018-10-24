@@ -1,4 +1,5 @@
 ^{:extra-main-files {:devcards {:main react-hitch.devcards-runner}
                      :test     {:main react-hitch.test-runner}}
   :watch-dirs       ["src" "test" "devcards"]}
-{:main react-hitch.qui-tracker}
+{:main     react-hitch.qui-tracker
+ :devcards true}

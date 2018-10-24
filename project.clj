@@ -19,6 +19,7 @@
                                   [com.bhauman/figwheel-main "0.2.0-SNAPSHOT"]]
                    :source-paths ["test" "devcards"]
                    :resource-paths ["target"]
+                   :clean-targets ^{:protect false} ["target"]
                    :aliases      {"fig"       ["trampoline" "run" "-m" "figwheel.main"]
                                   "build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]}}}
   :source-paths ["src"])
