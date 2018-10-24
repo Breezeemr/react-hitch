@@ -6,7 +6,7 @@
             [hitch2.protocols.tx-manager :as tx-manager]
             [hitch2.tx-manager.halting :as halting]
             [react-hitch.curator.react-hook :as rh]
-            [quiescent :as q]))
+            [breeze.quiescent :as q]))
 
 (defn forceUpdate [c]
   (when (some? (.-__graph c))

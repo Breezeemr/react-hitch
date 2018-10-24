@@ -10,14 +10,15 @@
                  [org.clojure/clojurescript "1.10.339" :scope "provided"]
                  [cljsjs/react-dom "0.14.0-1"]
                  [com.breezeehr/hitch2 "0.1.0-SNAPSHOT"]
-                 [breeze-quiescent "0.1.8-SNAPSHOT"
+                 [com.breezeehr/quiescent "0.2.0-SNAPSHOT"
                   :exclusions [cljsjs/react-dom cljsjs/react]]]
   :profiles {:dev {
                    :dependencies [[cider/piggieback "0.3.9"]    ; needed by figwheel nrepl
                                   [devcards "0.2.5"]
                                   [com.bhauman/cljs-test-display "0.1.1"]
-                                  [com.bhauman/figwheel-main "0.1.9"]]
+                                  [com.bhauman/figwheel-main "0.2.0-SNAPSHOT"]]
                    :source-paths ["test" "devcards"]
+                   :resource-paths ["target"]
                    :aliases      {"fig"       ["trampoline" "run" "-m" "figwheel.main"]
                                   "build-dev" ["trampoline" "run" "-m" "figwheel.main" "-b" "dev" "-r"]}}}
   :source-paths ["src"])
