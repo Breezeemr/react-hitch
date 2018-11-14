@@ -24,6 +24,10 @@
   (let [it (iter components)]
     (js/ReactDOM.unstable_batchedUpdates forceUpdate-all it)))
 
+(defmethod graph-proto/run-effect :rerender-components
+  [gm effect]
+  (batched-forceUpdate effect))
+
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
     (let [graph (.-__graph c)]
