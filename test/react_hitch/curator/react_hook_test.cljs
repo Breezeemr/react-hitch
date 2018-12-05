@@ -1,7 +1,7 @@
 (ns react-hitch.curator.react-hook-test
   (:require [clojure.test :refer [#_deftest is testing use-fixtures]]
             [react-hitch.curator.react-hook :as rh]
-            [react-hitch.common-test :refer [Constant]]
+            [react-hitch.common-test :refer [Constant] :as test]
             [hitch2.selector :as sel]
             [hitch2.protocols.selector :as sel-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
@@ -25,7 +25,7 @@
 (use-fixtures :once fixture)
 
 (def gctors
-  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver))]])
+  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver test/sync-scheduler))]])
 
 (defn reset-rc-parents [gm rc new-parents]
   (graph-proto/-transact! gm rh/react-hooker [:reset-component-parents rc new-parents]))

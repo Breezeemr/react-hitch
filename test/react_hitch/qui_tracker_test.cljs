@@ -1,6 +1,8 @@
 (ns react-hitch.qui-tracker-test
   (:require [clojure.test :refer [is testing use-fixtures]]
             [react-hitch.qui-tracker :as qui]
+            [react-hitch.curator.react-hook :as rh]
+            [react-hitch.common-test :as test]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.graph :as h]
             [hitch2.curator.mutable-var :refer  [mutable-var]]
@@ -21,7 +23,7 @@
 (use-fixtures :once fixture)
 
 (def gctors
-  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver))]])
+  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver test/sync-scheduler))]])
 
 (defn render-function [value rtx services]
   value)

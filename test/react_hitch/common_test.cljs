@@ -1,6 +1,7 @@
 (ns react-hitch.common-test
   (:require [hitch2.protocols.selector :as sel-proto]
-            [hitch2.selector-impl-registry :as reg]))
+            [hitch2.selector-impl-registry :as reg]
+            [hitch2.protocols.graph-manager :as g]))
 
 (defn return-constant [gv-tracker v]
   v)
@@ -18,3 +19,10 @@
 
 (defn Constant [v]
   (sel-proto/sel constant-spec' v))
+
+(def sync-scheduler
+  (reify g/IScheduler
+    (-run-sync [_ gm effects]
+      (run! (fn [effect] (g/run-effect gm effect)) effects))
+    (-run-async [_ gm effects]
+      (run! (fn [effect] (g/run-effect gm effect)) effects))))
