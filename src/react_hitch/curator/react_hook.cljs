@@ -4,6 +4,7 @@
             [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
             [hitch2.protocols.selector :as sel-proto
              :refer [def-selector-spec]]
+            [hitch2.sel :as sel]
             [hitch2.selector-impl-registry :as reg]
             [clojure.set :as set]))
 
@@ -88,4 +89,4 @@
 
 (reg/def-registered-selector Rreact-hook react-hook-spec react-hook-impl)
 
-(def react-hooker (sel-proto/sel Rreact-hook))
+(def react-hooker (sel/sel Rreact-hook))
