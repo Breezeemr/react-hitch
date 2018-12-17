@@ -1,15 +1,13 @@
 (ns react-hitch.curator.react-hook
-  (:require [hitch2.protocols.curator :as machine-proto]
-            [hitch2.protocols.graph-manager :as graph-proto]
-            [hitch2.sentinels :refer [NOT-FOUND-SENTINEL]]
-            [hitch2.protocols.selector :as sel-proto
-             :refer [def-selector-spec]]
-            [hitch2.sel :as sel]
+  (:require [hitch2.def.curator :as machine]
+            [hitch2.def.spec :as def-spec
+             :refer [def-descriptor-spec]]
             [hitch2.selector-impl-registry :as reg]
+            [hitch2.graph :as graph]
             [clojure.set :as set]))
 
 (def initial-node
-  (assoc machine-proto/initial-curator-state
+  (assoc machine/initial-curator-state
     :state {:rc->sel  {}
             :sel->rc  {}
             :dirty-rc #{}}))
@@ -17,10 +15,9 @@
 (defn remove-called-hooks [state selectors]
   (reduce dissoc state selectors))
 
-(def-selector-spec react-hook-spec
+(def-descriptor-spec react-hook-spec
   :machine
-  :hitch.selector.spec/canonical-form
-  :hitch.selector.spec.canonical-form/positional)
+  :canonical-form :vector)
 
 (defn reset-component-parents [node rc new-parents]
   (let [state               (:state node)
@@ -56,20 +53,19 @@
         (update :change-focus into @shared-parent-delta))))
 
 (def react-hook-impl
-  {:hitch.selector.impl/kind
-   :hitch.selector.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
 
-   ::machine-proto/init
+   ::machine/init
    (fn [machine-selector] initial-node)
 
-   ::machine-proto/apply-command
+   ::machine/apply-command
    (fn [machine-selector graph-value node command]
      (case (nth command 0)
        :reset-component-parents
        (let [[_ rc new-parents] command]
          (reset-component-parents node rc new-parents))))
 
-   ::machine-proto/observed-value-changes
+   ::machine/observed-value-changes
    (fn [machine-selector graph-value node parent-selectors]
      (let [sel->rc   (-> node :state :sel->rc)
            dirty-rc  (-> node :state :dirty-rc)
@@ -78,7 +74,7 @@
                        into dirty-rc parent-selectors)]
        (assoc-in node [:state :dirty-rc] dirty-rc')))
 
-   ::machine-proto/finalize
+   ::machine/finalize
    (fn [_ graph-value node]
      (let [dirty-rc (-> node :state :dirty-rc)]
        (cond-> (assoc-in node [:state :dirty-rc] #{})
@@ -89,4 +85,4 @@
 
 (reg/def-registered-selector Rreact-hook react-hook-spec react-hook-impl)
 
-(def react-hooker (sel/sel Rreact-hook))
+(def react-hooker (graph/positional-dtor Rreact-hook))

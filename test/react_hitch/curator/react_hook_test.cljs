@@ -2,8 +2,6 @@
   (:require [clojure.test :refer [#_deftest is testing use-fixtures]]
             [react-hitch.curator.react-hook :as rh]
             [react-hitch.common-test :refer [Constant] :as test]
-            [hitch2.selector :as sel]
-            [hitch2.protocols.selector :as sel-proto]
             [hitch2.protocols.graph-manager :as graph-proto]
             [hitch2.graph :as graph]
             [hitch2.curator.mutable-var :refer  [mutable-var]]
