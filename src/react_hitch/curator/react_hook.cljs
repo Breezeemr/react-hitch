@@ -11,7 +11,8 @@
          :state {:rc->sel     {}
                  :sel->rc     {}
                  :dirty-rc    #{}
-                 :gcable-sels #{}}))
+                 :gcable-sels #{}
+                 :gc-scheduled? false}))
 
 (defn remove-called-hooks [state selectors]
   (reduce dissoc state selectors))
@@ -67,7 +68,26 @@
      (case (nth command 0)
        :reset-component-parents
        (let [[_ rc new-parents] command]
-         (reset-component-parents node rc new-parents))))
+         (reset-component-parents node rc new-parents))
+       :gc
+       (let [{:keys [sel->rc
+                     gc-scheduled?
+                     gcable-sels]
+              :as state}
+             (-> node :state)]
+         (-> node
+           (update  :change-focus
+             into
+             (comp
+               (take 100)
+               (remove sel->rc)
+               (map (fn [sel]
+                      [sel false])))
+             gcable-sels)
+             (assoc  :state
+                     (assoc state
+                       :gcable-sels (into #{} (drop 100) gcable-sels)
+                       gc-scheduled? false))))))
 
    ::machine/observed-value-changes
    (fn [machine-selector graph-value node parent-selectors]
@@ -80,12 +100,20 @@
 
    ::machine/finalize
    (fn [_ graph-value node]
-     (let [dirty-rc (-> node :state :dirty-rc)]
+     (let [{:keys [dirty-rc
+                   gc-scheduled?
+                   gcable-sels]}
+           (-> node :state)]
        (cond-> (assoc-in node [:state :dirty-rc] #{})
          (pos? (count dirty-rc))
          (update :async-effects conj
            {:type       :rerender-components
-            :components dirty-rc}))))})
+            :components dirty-rc})
+         (and  (not gc-scheduled?)
+           (not-empty gcable-sels))
+         (update :async-effects conj
+           {:type       :schedule-gc})
+         )))})
 
 (reg/def-registered-selector Rreact-hook react-hook-spec react-hook-impl)
 

@@ -28,6 +28,19 @@
   [gm effect]
   (batched-forceUpdate effect))
 
+(def idlecall (if (exists? (.-requestIdleCallback js/window))
+                (fn [cb]
+                  (js/requestIdleCallback cb))
+                (fn [cb]
+                  (js/setTimeout cb 30))))
+
+(defmethod graph-proto/run-effect :schedule-gc
+  [gm effect]
+  (idlecall
+    (fn []
+      (graph-proto/-transact! gm rh/react-hooker
+        [:gc]))))
+
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
     (let [graph (.-__graph c)]
