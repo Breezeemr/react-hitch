@@ -11,14 +11,18 @@
             [devcards.core :refer-macros [deftest]]))
 
 (def results (atom []))
+(def gc-schedules (atom []))
 
 (defn fixture [f]
   (defmethod graph-proto/run-effect :rerender-components
     [gm effect]
-    (prn "effect! hook test")
     (swap! results conj effect))
+  (defmethod graph-proto/run-effect :schedule-gc
+    [gm effect]
+    (swap! gc-schedules conj effect))
   (f)
-  (remove-method graph-proto/run-effect :rerender-components))
+  (remove-method graph-proto/run-effect :rerender-components)
+  (remove-method graph-proto/run-effect :schedule-gc))
 
 (use-fixtures :once fixture)
 
@@ -54,3 +58,23 @@
         (graph/apply-commands g [[mv-sel [:set-value 2]]])
 
         (is (= components (-> @results first :components)))))))
+
+(doseq [[gname gctor] gctors]
+  (deftest unmounting-schedules-gc
+    (let [g         (gctor)
+          services  {:graph g}
+          sels      (into #{} (map Constant) (range 400))
+          component :rc]
+
+      (reset! gc-schedules [])
+      (reset-rc-parents g component sels)
+
+      (reset-rc-parents g component #{})
+      (testing "A gc is scheduled when the component is unmounted"
+       (is (= @gc-schedules [{:type :schedule-gc}])))
+
+      (reset! gc-schedules [])
+      (reset-rc-parents g component #{(Constant 0)})
+
+      (testing "The sweep happens only once even if it does not sweep everything"
+        (is (= @gc-schedules []))))))

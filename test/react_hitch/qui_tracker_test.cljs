@@ -15,7 +15,6 @@
 (defn fixture [f]
   (defmethod graph-proto/run-effect :rerender-components
     [gm effect]
-    (prn "effect! in qui tracker")
     (swap! results conj effect))
   (f)
   (remove-method graph-proto/run-effect :rerender-components))

@@ -53,8 +53,11 @@
         state'              (assoc state :rc->sel rc->sel'
                                          :sel->rc sel->rc')]
     (-> node
-        (update-in [:state :gcable-sels] into (filter (comp false? val)) @shared-parent-delta)
         (assoc :state state')
+        (update-in [:state :gcable-sels] into
+                   (comp (filter (comp false? val))
+                         (map key))
+                   @shared-parent-delta)
         (update :change-focus into (remove (comp false? val)) @shared-parent-delta))))
 
 (def react-hook-impl
@@ -109,11 +112,12 @@
          (update :async-effects conj
            {:type       :rerender-components
             :components dirty-rc})
-         (and  (not gc-scheduled?)
-           (not-empty gcable-sels))
-         (update :async-effects conj
-           {:type       :schedule-gc})
-         )))})
+         (and (not gc-scheduled?)
+              (not-empty gcable-sels))
+         (->
+          (update :async-effects conj
+                  {:type :schedule-gc})
+          (assoc-in [:state :gc-scheduled?] true)))))})
 
 (reg/def-registered-selector Rreact-hook react-hook-spec react-hook-impl)
 
