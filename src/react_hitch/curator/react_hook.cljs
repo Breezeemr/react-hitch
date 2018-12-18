@@ -8,9 +8,10 @@
 
 (def initial-node
   (assoc machine/initial-curator-state
-    :state {:rc->sel  {}
-            :sel->rc  {}
-            :dirty-rc #{}}))
+         :state {:rc->sel     {}
+                 :sel->rc     {}
+                 :dirty-rc    #{}
+                 :gcable-sels #{}}))
 
 (defn remove-called-hooks [state selectors]
   (reduce dissoc state selectors))
@@ -26,7 +27,9 @@
         old-parents         (get rc->sel rc #{})
         del-parents         (set/difference old-parents new-parents)
         add-parents         (set/difference new-parents old-parents)
-        rc->sel'            (assoc rc->sel rc new-parents)
+        rc->sel'            (if (seq new-parents)
+                              (assoc rc->sel rc new-parents)
+                              (dissoc rc->sel rc))
         shared-parent-delta (volatile! {})
         sel->rc'            (as-> sel->rc <>
                               (reduce
@@ -49,8 +52,9 @@
         state'              (assoc state :rc->sel rc->sel'
                                          :sel->rc sel->rc')]
     (-> node
+        (update-in [:state :gcable-sels] into (filter (comp false? val)) @shared-parent-delta)
         (assoc :state state')
-        (update :change-focus into @shared-parent-delta))))
+        (update :change-focus into (remove (comp false? val)) @shared-parent-delta))))
 
 (def react-hook-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
