@@ -1,4 +1,5 @@
 (ns react-hitch.qui-tracker
+  (:import (goog.async run nextTick))
   (:require cljsjs.react
             cljsjs.react.dom
             [hitch2.halt :as halt]
@@ -34,6 +35,19 @@
                 (fn [cb]
                   (js/setTimeout cb 30))))
 
+(def pending-commands #js [])
+
+(defn run-commands [graph]
+  (fn []
+    (let [commands pending-commands]
+      (set! pending-commands #js [])
+      (graph-proto/-transact-commands! graph commands))))
+
+(defn queue-command [graph command]
+  (when (zero? (alength pending-commands))
+    (nextTick (run-commands graph)))
+  (.push pending-commands command))
+
 (defmethod graph-proto/run-effect :schedule-gc
   [gm effect]
   (idlecall
@@ -44,9 +58,7 @@
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
     (let [graph (.-__graph c)]
-      (graph-proto/-transact! graph rh/react-hooker
-        [:reset-component-parents c #{}]))))
-
+      (queue-command graph [rh/react-hooker [:reset-component-parents c #{}]]))))
 
 (defn hitchify-component! [c graph]
   (when-not (some? (.-__graph c))
@@ -69,8 +81,7 @@
                            (render-fn value rtx services)
                            unresolved)
          focus-selectors (tx-manager/finish-tx! rtx)]
-     (graph-proto/-transact! graph rh/react-hooker
-       [:reset-component-parents c focus-selectors])
+     (queue-command graph [rh/react-hooker [:reset-component-parents c focus-selectors]])
      result))
   ([graph unresolved c render-fn value meta services]
    (hitchify-component! c graph)
@@ -80,8 +91,7 @@
                            (render-fn value rtx meta services)
                            unresolved)
          focus-selectors (tx-manager/finish-tx! rtx)]
-     (graph-proto/-transact! graph rh/react-hooker
-       [:reset-component-parents c focus-selectors])
+     (queue-command graph [rh/react-hooker [:reset-component-parents c focus-selectors]])
      result)))
 
 (defn hitch-render-wrapper [nf]
