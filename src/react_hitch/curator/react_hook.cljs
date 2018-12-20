@@ -1,5 +1,5 @@
 (ns react-hitch.curator.react-hook
-  (:require [hitch2.def.curator :as machine]
+  (:require [hitch2.def.curator :as curator]
             [hitch2.def.spec :as def-spec
              :refer [def-descriptor-spec]]
             [hitch2.descriptor-impl-registry :as reg]
@@ -7,7 +7,7 @@
             [clojure.set :as set]))
 
 (def initial-node
-  (assoc machine/initial-curator-state
+  (assoc curator/initial-curator-state
          :state {:rc->sel     {}
                  :sel->rc     {}
                  :dirty-rc    #{}
@@ -18,7 +18,7 @@
   (reduce dissoc state descriptors))
 
 (def-descriptor-spec react-hook-spec
-  :machine
+  :curator
   :canonical-form :vector)
 
 (defn reset-component-parents [node rc new-parents]
@@ -61,13 +61,13 @@
         (update :change-focus into (remove (comp false? val)) @shared-parent-delta))))
 
 (def react-hook-impl
-  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
+  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
 
-   ::machine/init
-   (fn [machine-descriptor] initial-node)
+   ::curator/init
+   (fn [curator-descriptor] initial-node)
 
-   ::machine/apply-command
-   (fn [machine-descriptor graph-value node command]
+   ::curator/apply-command
+   (fn [curator-descriptor graph-value node command]
      (case (nth command 0)
        :reset-component-parents
        (let [[_ rc new-parents] command]
@@ -92,8 +92,8 @@
                        :gcable-sels (into #{} (drop 100) gcable-sels)
                        gc-scheduled? false))))))
 
-   ::machine/observed-value-changes
-   (fn [machine-descriptor graph-value node parent-descriptors]
+   ::curator/observed-value-changes
+   (fn [curator-descriptor graph-value node parent-descriptors]
      (let [sel->rc   (-> node :state :sel->rc)
            dirty-rc  (-> node :state :dirty-rc)
            dirty-rc' (transduce
@@ -101,7 +101,7 @@
                        into dirty-rc parent-descriptors)]
        (assoc-in node [:state :dirty-rc] dirty-rc')))
 
-   ::machine/finalize
+   ::curator/finalize
    (fn [_ graph-value node]
      (let [{:keys [dirty-rc
                    gc-scheduled?

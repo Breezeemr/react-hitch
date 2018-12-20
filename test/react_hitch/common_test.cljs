@@ -9,7 +9,7 @@
   v)
 
 (def-descriptor-spec constant-spec
-  :not-machine
+  :not-curator
   :canonical-form :vector
   :positional-params [:v])
 
