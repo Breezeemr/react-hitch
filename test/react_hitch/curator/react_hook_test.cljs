@@ -6,7 +6,7 @@
             [hitch2.graph :as graph]
             [hitch2.curator.mutable-var :refer  [mutable-var]]
             [hitch2.graph-manager.atom :as atom-gm]
-            [hitch2.selector-impl-registry :as reg
+            [hitch2.descriptor-impl-registry :as reg
              :refer [registry-resolver]]
             [devcards.core :refer-macros [deftest]]))
 
@@ -52,7 +52,7 @@
         (reset! results [])
         (doseq [c components] (reset-rc-parents g c #{mv-sel}))
 
-        ;; no events from selectors with no values
+        ;; no events from descriptors with no values
         (is (= @results []))
 
         (graph/apply-commands g [[mv-sel [:set-value 2]]])

@@ -7,7 +7,7 @@
             [hitch2.graph :as h]
             [hitch2.curator.mutable-var :refer  [mutable-var]]
             [hitch2.graph-manager.atom :as atom-gm]
-            [hitch2.selector-impl-registry :as reg :refer [registry-resolver]]
+            [hitch2.descriptor-impl-registry :as reg :refer [registry-resolver]]
             [devcards.core :refer-macros [deftest]]))
 
 (def results (atom []))

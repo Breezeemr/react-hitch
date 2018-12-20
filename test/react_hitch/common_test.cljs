@@ -2,7 +2,7 @@
   (:require [hitch2.def.spec :as def-spec
              :refer [def-descriptor-spec]]
             [hitch2.graph :as graph]
-            [hitch2.selector-impl-registry :as reg]
+            [hitch2.descriptor-impl-registry :as reg]
             [hitch2.protocols.graph-manager :as g]))
 
 (defn return-constant [gv-tracker v]
@@ -16,9 +16,9 @@
 (def constant-impl
   {:hitch2.descriptor.impl/kind                  :hitch2.descriptor.kind/halting
    :hitch2.descriptor.impl/halting               return-constant
-   :hitch2.descriptor.impl/halting-slot-selector (fn [_dt _sel v] v)})
+   :hitch2.descriptor.impl/halting-slot-descriptor (fn [_dt _sel v] v)})
 
-(reg/def-registered-selector constant-spec' constant-spec constant-impl)
+(reg/def-registered-descriptor constant-spec' constant-spec constant-impl)
 
 (defn Constant [v]
   (graph/positional-dtor constant-spec' v))

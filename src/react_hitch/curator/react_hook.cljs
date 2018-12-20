@@ -2,7 +2,7 @@
   (:require [hitch2.def.curator :as machine]
             [hitch2.def.spec :as def-spec
              :refer [def-descriptor-spec]]
-            [hitch2.selector-impl-registry :as reg]
+            [hitch2.descriptor-impl-registry :as reg]
             [hitch2.graph :as graph]
             [clojure.set :as set]))
 
@@ -14,8 +14,8 @@
                  :gcable-sels #{}
                  :gc-scheduled? false}))
 
-(defn remove-called-hooks [state selectors]
-  (reduce dissoc state selectors))
+(defn remove-called-hooks [state descriptors]
+  (reduce dissoc state descriptors))
 
 (def-descriptor-spec react-hook-spec
   :machine
@@ -64,10 +64,10 @@
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/machine
 
    ::machine/init
-   (fn [machine-selector] initial-node)
+   (fn [machine-descriptor] initial-node)
 
    ::machine/apply-command
-   (fn [machine-selector graph-value node command]
+   (fn [machine-descriptor graph-value node command]
      (case (nth command 0)
        :reset-component-parents
        (let [[_ rc new-parents] command]
@@ -93,12 +93,12 @@
                        gc-scheduled? false))))))
 
    ::machine/observed-value-changes
-   (fn [machine-selector graph-value node parent-selectors]
+   (fn [machine-descriptor graph-value node parent-descriptors]
      (let [sel->rc   (-> node :state :sel->rc)
            dirty-rc  (-> node :state :dirty-rc)
            dirty-rc' (transduce
                        (map sel->rc)
-                       into dirty-rc parent-selectors)]
+                       into dirty-rc parent-descriptors)]
        (assoc-in node [:state :dirty-rc] dirty-rc')))
 
    ::machine/finalize
@@ -119,6 +119,6 @@
                   {:type :schedule-gc})
           (assoc-in [:state :gc-scheduled?] true)))))})
 
-(reg/def-registered-selector Rreact-hook react-hook-spec react-hook-impl)
+(reg/def-registered-descriptor Rreact-hook react-hook-spec react-hook-impl)
 
 (def react-hooker (graph/positional-dtor Rreact-hook))

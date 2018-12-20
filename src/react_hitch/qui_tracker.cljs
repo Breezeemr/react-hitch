@@ -80,8 +80,8 @@
          result          (halt/maybe-halt
                            (render-fn value rtx services)
                            unresolved)
-         focus-selectors (tx-manager/finish-tx! rtx)]
-     (queue-command graph [rh/react-hooker [:reset-component-parents c focus-selectors]])
+         focus-descriptors (tx-manager/finish-tx! rtx)]
+     (queue-command graph [rh/react-hooker [:reset-component-parents c focus-descriptors]])
      result))
   ([graph unresolved c render-fn value meta services]
    (hitchify-component! c graph)
@@ -90,8 +90,8 @@
          result          (halt/maybe-halt
                            (render-fn value rtx meta services)
                            unresolved)
-         focus-selectors (tx-manager/finish-tx! rtx)]
-     (queue-command graph [rh/react-hooker [:reset-component-parents c focus-selectors]])
+         focus-descriptors (tx-manager/finish-tx! rtx)]
+     (queue-command graph [rh/react-hooker [:reset-component-parents c focus-descriptors]])
      result)))
 
 (defn hitch-render-wrapper [nf]
