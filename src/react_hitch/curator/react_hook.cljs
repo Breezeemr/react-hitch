@@ -90,7 +90,7 @@
              (assoc  :state
                      (assoc state
                        :gcable-sels (into #{} (drop 100) gcable-sels)
-                       gc-scheduled? false))))))
+                       :gc-scheduled? false))))))
 
    ::curator/observed-value-changes
    (fn [curator-descriptor graph-value node parent-descriptors]
