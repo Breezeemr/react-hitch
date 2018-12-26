@@ -82,14 +82,14 @@
            (update  :change-focus
              into
              (comp
-               (take 100)
+               (take 10)
                (remove sel->rc)
                (map (fn [sel]
                       [sel false])))
              gcable-sels)
              (assoc  :state
                      (assoc state
-                       :gcable-sels (into #{} (drop 100) gcable-sels)
+                       :gcable-sels (into #{} (drop 10) gcable-sels)
                        :gc-scheduled? false))))))
 
    ::curator/observed-value-changes
