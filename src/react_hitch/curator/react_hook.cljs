@@ -51,14 +51,20 @@
                                       (assoc sel->rc sel rcs'))))
                                 <> del-parents))
         state'              (assoc state :rc->sel rc->sel'
-                                         :sel->rc sel->rc')]
+                                         :sel->rc sel->rc')
+        tounload  (into []
+                    (comp (filter (comp false? val))
+                      (map key))
+                    @shared-parent-delta)]
     (-> node
         (assoc :state state')
-        (update-in [:state :gcable-sels] into
-                   (comp (filter (comp false? val))
-                         (map key))
-                   @shared-parent-delta)
-        (update :change-focus into (remove (comp false? val)) @shared-parent-delta))))
+        (update :change-focus into (remove (comp false? val)) @shared-parent-delta)
+        (cond->
+          (not-empty tounload)
+          (update :async-effects
+            conj
+            {:type :delay-unload
+             :tounload tounload})))))
 
 (def react-hook-impl
   {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
@@ -72,6 +78,9 @@
        :reset-component-parents
        (let [[_ rc new-parents] command]
          (reset-component-parents node rc new-parents))
+       :delayed-unload
+       (let [[_ sels] command]
+         (update-in node [:state :gcable-sels] into sels))
        :gc
        (let [{:keys [sel->rc
                      gc-scheduled?

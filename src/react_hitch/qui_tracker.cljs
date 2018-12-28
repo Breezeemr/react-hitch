@@ -55,6 +55,15 @@
       (graph-proto/-transact! gm rh/react-hooker
         [:gc]))))
 
+
+(defmethod graph-proto/run-effect :delay-unload
+  [gm {:keys [tounload]:as effect}]
+  (js/setTimeout
+    (fn []
+      (graph-proto/-transact! gm rh/react-hooker
+        [:delayed-unload tounload]))
+    60000))
+
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
     (let [graph (.-__graph c)]
