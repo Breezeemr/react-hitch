@@ -62,7 +62,7 @@
     (fn []
       (graph-proto/-transact! gm rh/react-hooker
         [:delayed-unload tounload]))
-    60000))
+    1200000))
 
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
