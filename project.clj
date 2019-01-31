@@ -13,10 +13,10 @@
                  [com.breezeehr/quiescent "0.2.0-SNAPSHOT"
                   :exclusions [cljsjs/react-dom cljsjs/react]]]
   :profiles {:dev {
-                   :dependencies [[cider/piggieback "0.3.9"]    ; needed by figwheel nrepl
+                   :dependencies [[cider/piggieback "0.3.10"]    ; needed by figwheel nrepl
                                   [devcards "0.2.5"]
                                   [com.bhauman/cljs-test-display "0.1.1"]
-                                  [com.bhauman/figwheel-main "0.2.0-SNAPSHOT"]]
+                                  [com.bhauman/figwheel-main "0.2.0"]]
                    :source-paths ["test" "devcards"]
                    :resource-paths ["target"]
                    :clean-targets ^{:protect false} ["target"]
