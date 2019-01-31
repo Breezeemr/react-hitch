@@ -33,7 +33,7 @@
                 (fn [cb]
                   (js/requestIdleCallback cb))
                 (fn [cb]
-                  (js/setTimeout cb 30))))
+                  (js/setTimeout cb 1000))))
 
 (def pending-commands #js [])
 
@@ -62,7 +62,7 @@
     (fn []
       (graph-proto/-transact! gm rh/react-hooker
         [:delayed-unload tounload]))
-    1200000))
+    600000))
 
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
