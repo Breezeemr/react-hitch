@@ -6,7 +6,7 @@
             [hitch2.curator.mutable-var :refer  [mutable-var]]
             [hitch2.graph :as h]
             [hitch2.graph-manager.atom :as g]
-            [hitch2.selector-impl-registry :as reg
+            [hitch2.descriptor-impl-registry :as reg
              :refer [registry-resolver]])
   (:require-macros [devcards.core :refer [defcard]]))
 
