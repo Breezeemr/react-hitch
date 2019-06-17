@@ -10,7 +10,7 @@
                  [org.clojure/clojurescript "1.10.339" :scope "provided"]
                  [cljsjs/react-dom "0.14.0-1"]
                  [com.breezeehr/hitch2 "0.3.1-SNAPSHOT"]
-                 [com.breezeehr/quiescent "0.2.0-SNAPSHOT"
+                 [com.breezeehr/quiescent "0.2.0"
                   :exclusions [cljsjs/react-dom cljsjs/react]]]
   :profiles {:dev {
                    :dependencies [[cider/piggieback "0.3.10"]    ; needed by figwheel nrepl
