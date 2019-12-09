@@ -4,6 +4,9 @@
              :refer [def-descriptor-spec]]
             [hitch2.descriptor-impl-registry :as reg]
             [hitch2.graph :as graph]
+            [react-hitch.descriptor-specs
+             :refer [react-hitcher-process-spec
+                     react-hook-spec react-hitcher-process]]
             [clojure.set :as set]))
 
 (def initial-node
@@ -16,10 +19,6 @@
 
 (defn remove-called-hooks [state descriptors]
   (reduce dissoc state descriptors))
-
-(def-descriptor-spec react-hook-spec
-  :curator
-  :canonical-form :vector)
 
 (defn reset-component-parents [node rc new-parents]
   (let [state               (:state node)
@@ -61,13 +60,15 @@
         (update :change-focus into (remove (comp false? val)) @shared-parent-delta)
         (cond->
           (not-empty tounload)
-          (update :async-effects
+          (update :outbox
             conj
-            {:type :delay-unload
-             :tounload tounload})))))
+            [react-hitcher-process
+             {:type     :delay-unload
+              :tounload tounload}])))))
 
 (def react-hook-impl
-  {:hitch2.descriptor.impl/kind :hitch2.descriptor.kind/curator
+  {:hitch2.descriptor.impl/kind
+   :hitch2.descriptor.kind/curator
 
    ::curator/init
    (fn [curator-descriptor] initial-node)
@@ -81,6 +82,10 @@
        :delayed-unload
        (let [[_ sels] command]
          (update-in node [:state :gcable-sels] into sels))
+       :subscribe-hook
+       (let [])
+       :unsubscribe-hook
+       (let [])
        :gc
        (let [{:keys [sel->rc
                      gc-scheduled?
@@ -118,16 +123,16 @@
            (-> node :state)]
        (cond-> (assoc-in node [:state :dirty-rc] #{})
          (pos? (count dirty-rc))
-         (update :async-effects conj
-           {:type       :rerender-components
-            :components dirty-rc})
+         (update :outbox conj
+           [react-hitcher-process
+            {:type       :rerender-components
+             :components dirty-rc}])
          (and (not gc-scheduled?)
-              (not-empty gcable-sels))
+           (not-empty gcable-sels))
          (->
-          (update :async-effects conj
-                  {:type :schedule-gc})
-          (assoc-in [:state :gc-scheduled?] true)))))})
+           (update :outbox conj
+             [react-hitcher-process
+              {:type :schedule-gc}])
+           (assoc-in [:state :gc-scheduled?] true)))))})
 
 (reg/def-registered-descriptor Rreact-hook react-hook-spec react-hook-impl)
-
-(def react-hooker (graph/positional-dtor Rreact-hook))

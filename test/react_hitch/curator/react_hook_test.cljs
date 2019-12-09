@@ -8,29 +8,30 @@
             [hitch2.graph-manager.atom :as atom-gm]
             [hitch2.descriptor-impl-registry :as reg
              :refer [registry-resolver]]
-            [devcards.core :refer-macros [deftest]]))
+            [devcards.core :refer-macros [deftest]]
+            [react-hitch.descriptor-specs :refer [react-hooker]]))
 
 (def results (atom []))
 (def gc-schedules (atom []))
 
 (defn fixture [f]
-  (defmethod graph-proto/run-effect :rerender-components
+  #_#_(defmethod graph-proto/run-effect :rerender-components
     [gm effect]
     (swap! results conj effect))
   (defmethod graph-proto/run-effect :schedule-gc
     [gm effect]
     (swap! gc-schedules conj effect))
   (f)
-  (remove-method graph-proto/run-effect :rerender-components)
+  #_#_(remove-method graph-proto/run-effect :rerender-components)
   (remove-method graph-proto/run-effect :schedule-gc))
 
 (use-fixtures :once fixture)
 
 (def gctors
-  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver test/sync-scheduler))]])
+  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver #_test/sync-scheduler))]])
 
 (defn reset-rc-parents [gm rc new-parents]
-  (graph-proto/-transact! gm rh/react-hooker [:reset-component-parents rc new-parents]))
+  (graph-proto/-transact! gm react-hooker [:reset-component-parents rc new-parents]))
 
 (doseq [[gname gctor] gctors]
   (deftest simple-get-ok

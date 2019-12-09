@@ -22,7 +22,7 @@
 (use-fixtures :once fixture)
 
 (def gctors
-  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver test/sync-scheduler))]])
+  [["Atom graph: " (fn [] (atom-gm/make-gm registry-resolver #_test/sync-scheduler))]])
 
 (defn render-function [value rtx services]
   value)

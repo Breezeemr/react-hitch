@@ -1,0 +1,41 @@
+;; shadow-cljs configuration
+{:lein  true                                             ;{:profiles "+prod,-dev"}
+
+ ;; set an nrepl port for connection to a REPL.
+ :nrepl {:port 8777}
+
+ :builds
+        {:app
+         {:target           :browser
+          :output-dir       "public/js"
+          :asset-path       "/js"
+
+          :modules
+                            {:devcards
+                             {:entries    [react-hitch.devcards-runner]
+                              :depends-on #{:default}}
+                             :test
+                             {:entries [react-hitch.test-runner]
+                              :depends-on #{:default}}
+                             :default
+                             {}
+                             }
+          :compiler-options {:source-map     true
+                             ;; This is done in ribbon and transient_state.
+                             :warnings       {:protocol-multiple-impls  false
+                                              :single-segment-namespace false}
+                             :language-in    :ecmascript5
+                             :language-out   :ecmascript5
+                             :cache-analysis true}
+          :dev              {:compiler-options {:devcards true}}
+
+          :devtools
+          ;; before live-reloading any code call this function
+                            {;:before-load crnklrn-deps.core/stop
+                             ;; after live-reloading finishes call this function
+                             ; :after-load breeze.jib.main/rerender!
+                             ;; serve the public directory over http at port 8700
+                             :http-root "public"
+                             :http-port 8700
+                             ;; :handler    breeze.jib.server.figwheel-ring-handler/static-ring-handler
+                             :preloads  [devtools.preload]}}}}

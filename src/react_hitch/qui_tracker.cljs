@@ -4,10 +4,16 @@
             cljsjs.react.dom
             [hitch2.halt :as halt]
             [hitch2.protocols.graph-manager :as graph-proto]
+            [hitch2.process-manager :as pm]
+            [hitch2.def.spec
+             :refer [def-descriptor-spec]]
+            [hitch2.descriptor-impl-registry :as reg]
+            [hitch2.descriptor :as descriptor]
             [hitch2.protocols.tx-manager :as tx-manager]
             [hitch2.tx-manager.halting :as halting]
             [react-hitch.curator.react-hook :as rh]
-            [breeze.quiescent :as q]))
+            [breeze.quiescent :as q]
+            [react-hitch.descriptor-specs :refer [react-hitcher-process-spec react-hook-spec react-hooker]]))
 
 (defn forceUpdate [c]
   (when (some? (.-__graph c))
@@ -24,10 +30,6 @@
   [{:keys [components] :as rerender-component-effect}]
   (let [it (iter components)]
     (js/ReactDOM.unstable_batchedUpdates forceUpdate-all it)))
-
-(defmethod graph-proto/run-effect :rerender-components
-  [gm effect]
-  (batched-forceUpdate effect))
 
 (def idlecall (if (exists? (.-requestIdleCallback js/window))
                 (fn [cb]
@@ -48,26 +50,37 @@
     (nextTick (run-commands graph)))
   (.push pending-commands command))
 
-(defmethod graph-proto/run-effect :schedule-gc
-  [gm effect]
-  (idlecall
-    (fn []
-      (graph-proto/-transact! gm rh/react-hooker
-        [:gc]))))
+(def react-hitcher-process
+  {:hitch2.descriptor.impl/kind
+   :hitch2.descriptor.kind/process
+   ::pm/create
+   (fn [pdtor]
+     (reify
+       pm/IProcess
+       (-send-message! [process {:keys [gm] :as effect}]
+         (case (:type effect)
+           :rerender-components
+           (batched-forceUpdate effect)
+           :schedule-gc
+           (idlecall
+             (fn []
+               (graph-proto/-transact! gm react-hooker
+                 [:gc])))
+           :delay-unload
+           (js/setTimeout
+             (fn []
+               (graph-proto/-transact! gm react-hooker
+                 [:delayed-unload (:tounload effect)]))
+             300000)))
+       (-kill-process! [process]
+         true)))})
 
-
-(defmethod graph-proto/run-effect :delay-unload
-  [gm {:keys [tounload]:as effect}]
-  (js/setTimeout
-    (fn []
-      (graph-proto/-transact! gm rh/react-hooker
-        [:delayed-unload tounload]))
-    300000))
+(reg/def-registered-descriptor react-hitcher-spec' react-hitcher-process-spec react-hitcher-process)
 
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
     (let [graph (.-__graph c)]
-      (queue-command graph [rh/react-hooker [:reset-component-parents c #{}]]))))
+      (queue-command graph [react-hooker [:reset-component-parents c #{}]]))))
 
 (defn hitchify-component! [c graph]
   (when-not (some? (.-__graph c))
@@ -90,7 +103,7 @@
                            (render-fn value rtx services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (queue-command graph [rh/react-hooker [:reset-component-parents c focus-descriptors]])
+     (queue-command graph [react-hooker [:reset-component-parents c focus-descriptors]])
      result))
   ([graph unresolved c render-fn value meta services]
    (hitchify-component! c graph)
@@ -100,7 +113,7 @@
                            (render-fn value rtx meta services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (queue-command graph [rh/react-hooker [:reset-component-parents c focus-descriptors]])
+     (queue-command graph [react-hooker [:reset-component-parents c focus-descriptors]])
      result)))
 
 (defn hitch-render-wrapper [nf]
