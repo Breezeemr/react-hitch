@@ -17,3 +17,6 @@ pom.xml
 *.iml
 id_file
 /node_modules/
+/.shadow-cljs/
+/public/js/
+/.lein-failures
