@@ -57,17 +57,18 @@
                                       (dissoc sel->rc sel)
                                       (assoc sel->rc sel rcs'))))
                                 <> del-parents))
-        state'              (assoc state :rc->sel rc->sel'
-                                         :sel->rc sel->rc')
-        t                    (js/Date.now)]
+        t                    (js/Date.now)
+        state'              (-> state
+                                (assoc :rc->sel rc->sel'
+                                       :sel->rc sel->rc')
+                                (update :gcable-sels into
+                                  (keep (fn [x]
+                                          (when (false? (val x))
+                                            (->timedunload t (key x)))))
+                                  @shared-parent-delta))]
     (-> node
         (assoc :state state')
-        (update :change-focus into (remove (comp false? val)) @shared-parent-delta)
-        (update :gcable-sels into
-          (keep (fn [x]
-                  (when (false? (val x))
-                    (->timedunload t (key x)))))
-          @shared-parent-delta))))
+        (update :change-focus into (remove (comp false? val)) @shared-parent-delta))))
 
 (defn handle-hook-subs [node subs]
   (let [state               (:state node)
@@ -91,12 +92,14 @@
             (recur (assoc sel->rc dtor rcs) tounload toload (rest subs))
             (recur (dissoc sel->rc dtor) (conj tounload dtor) toload (rest subs))))
         (-> node
-            (assoc-in [:state :sel->rc] sel->rc)
+            (update :state #(-> %
+                                (assoc :sel->rc sel->rc)
+                                (update :gcable-sels into
+                                  (map (fn [x]
+                                         (->timedunload t x)))
+                                  tounload)))
             (update :change-focus into (map (fn [x] [x true])) toload)
-            (update :gcable-sels into
-              (map (fn [x]
-                     (->timedunload t x)))
-              tounload))))))
+            )))))
 
 (defn prep-rerender [sel->rc]
   (fn [sel]
@@ -114,20 +117,24 @@
          :as   state}
         (-> node :state)
         current-t   (js/Date.now)]
+    (when goog/DEBUG
+      (prn :gc 10 " of " (count gcable-sels)))
     (loop [change-focus  (transient (:change-focus node))
            gcable-sels  gcable-sels
            totake        10]
       (if-some [sel (peek gcable-sels)]
-        (if (and (> (- current-t (:time sel)) ms-until-unload)
+        (if (and (pos? (-> current-t
+                           (- (:time sel))
+                           (- ms-until-unload)) )
               (pos? totake))
           (let [dtor (:dtor sel)]
             (if (sel->rc dtor)
               (recur change-focus (pop gcable-sels) totake)
               (recur (assoc! change-focus dtor false) (pop gcable-sels) (dec totake))))
           (assoc node :change-focus (persistent! change-focus)
-                      :gcable-sels gcable-sels))
+                      :state (assoc state :gcable-sels gcable-sels)))
         (assoc node :change-focus (persistent! change-focus)
-                    :gcable-sels gcable-sels)))))
+                    :state (assoc state :gcable-sels gcable-sels))))))
 
 (def react-hook-impl
   {:hitch2.descriptor.impl/kind
@@ -148,7 +155,7 @@
        :gc
        (-> node
            do-gc
-           (assoc :state (-> node :state (assoc :gc-scheduled? false))))))
+           (assoc-in [:state :gc-scheduled?]  false))))
 
    ::curator/observed-value-changes
    (fn [curator-descriptor graph-value node parent-descriptors]

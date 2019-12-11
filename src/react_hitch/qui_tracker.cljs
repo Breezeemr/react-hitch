@@ -48,11 +48,14 @@
            :rerender-components
            (batched-forceUpdate effect)
            :schedule-gc
-           (let [t                 (:when effect)
-                 current-t         (js/Date.now)
+           (let [t               (:when effect)
+                 current-t       (js/Date.now)
                  ms-till-next-gc (-> current-t
-                                       (- t)
-                                       (- ms-until-unload))]
+                                     (- t)
+                                     (- ms-until-unload)
+                                     (* -1))]
+             (when goog/DEBUG
+               (prn :gc :in ms-till-next-gc))
              (if (pos? ms-till-next-gc)
                (js/setTimeout
                  (fn []
@@ -62,13 +65,7 @@
                (sched/idlecall
                  (fn []
                    (graph-proto/-transact! gm react-hooker
-                     [:gc])))))
-           :delay-unload
-           (js/setTimeout
-             (fn []
-               (graph-proto/-transact! gm react-hooker
-                 [:delayed-unload (:tounload effect)]))
-             300000)))
+                     [:gc])))))))
        (-kill-process! [process]
          true)))})
 
