@@ -1,6 +1,7 @@
 (ns react-hitch.scheduler
   (:import (goog.async run nextTick))
   (:require [hitch2.protocols.graph-manager :as graph-proto]
+            [react-hitch.curator.react-hook :as rh]
             [react-hitch.descriptor-specs :refer [react-hooker]]))
 
 
