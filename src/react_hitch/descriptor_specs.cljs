@@ -13,3 +13,7 @@
 (def react-hooker (graph/positional-dtor react-hook-spec))
 
 (def react-hitcher-process (graph/->dtor react-hitcher-process-spec nil) )
+
+(defrecord hook-dtor [h dtor])
+
+(def ms-until-unload 10000)

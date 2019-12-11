@@ -3,14 +3,16 @@
     ["react" :as react]
     [hitch2.graph :as h]
     [hitch2.protocols.graph-manager :as graph-proto]
+    [react-hitch.scheduler :as sched]
     [react-hitch.graph :refer [GraphContext]]
     [react-hitch.descriptor-specs :refer [react-hooker]]
-    [crinkle.component :as c]))
+    [crinkle.component :as c]
+    [goog.async :refer :as async]))
 
-(defonce ^:private LOADING #js{})
+(def LOADING sched/LOADING)
 
 (defn loaded? [x]
-  (not (identical? LOADING x)))
+  (not (identical? sched/LOADING x)))
 
 (defn- get-dtor [gm dtor nf]
   ;; TODO: -get-graph marked deprecated, unsure of replacement
@@ -59,27 +61,23 @@
       (do (set! (.-current vref) value)
           value))))
 
+(defn useSelectedRaw
+  [g dtor not-found]
+  (let [s          (react/useState (get-dtor g dtor not-found))
+        dtorval    (aget s 0)
+        setdtorval (aget s 1)]
+    (react/useEffect
+      (fn []
+        (vswap! sched/hsubs sched/add-subscribe g [setdtorval dtor] (sched/->valbox dtorval))
+        #(vswap! sched/hsubs sched/remove-subscribe g [setdtorval dtor]))
+      #js[dtor])
+    dtorval))
 
 (defn useSelected
   "This hook requires that GraphContext be set."
   ([dtor]
    (useSelected dtor LOADING))
   ([dtor not-found]
-   (let [;dtor-ref       (react/useRef dtor)
-         dtor       (c/use= dtor)
-         g          (react/useContext GraphContext)
-         s          (react/useState (get-dtor g dtor not-found))
-         dtorval    (aget s 0)
-         setdtorval (aget s 1)]
-     (react/useEffect
-       (fn []
-
-         #_(identity g [react-hooker
-                        [:subscribe-hook setdtorval dtor]])
-         (let [val (get-dtor g dtor not-found)]
-           (when (and (loaded? val) (not= dtorval val))
-             (setdtorval val)))
-         #_(identity g [react-hooker
-                        [:unsubscribe-hook setdtorval dtor]]))
-       #js[dtor])
-     dtorval)))
+   (let [dtor       (use= dtor)
+         g          (react/useContext GraphContext)]
+     (useSelectedRaw g dtor not-found))))

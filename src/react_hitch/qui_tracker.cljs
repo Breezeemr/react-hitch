@@ -12,43 +12,29 @@
             [hitch2.protocols.tx-manager :as tx-manager]
             [hitch2.tx-manager.halting :as halting]
             [react-hitch.curator.react-hook :as rh]
+            [react-hitch.scheduler :as sched]
             [breeze.quiescent :as q]
-            [react-hitch.descriptor-specs :refer [react-hitcher-process-spec react-hook-spec react-hooker]]))
+            [react-hitch.descriptor-specs :refer [react-hitcher-process-spec
+                                                  react-hook-spec react-hooker
+                                                  hook-dtor ms-until-unload]]))
 
-(defn forceUpdate [c]
-  (when (some? (.-__graph c))
-    (.forceUpdate c))
+(defn forceUpdate [graph-value c]
+  (if (instance? hook-dtor c)
+    ((:h c) (:dtor c))
+    (when (some? (.-__graph c))
+      (.forceUpdate c)))
   nil)
 
-(defn forceUpdate-all [^not-native it]
+(defn forceUpdate-all [^not-native it graph-value]
   (while (.hasNext it)
-    (forceUpdate (.next it))))
+    (forceUpdate graph-value (.next it))))
 
 (defn batched-forceUpdate
   "Takes a :rerender-components effect and updates all components using React's
   unstable_batchedUpdates."
-  [{:keys [components] :as rerender-component-effect}]
+  [{:keys [components graph-value] :as rerender-component-effect}]
   (let [it (iter components)]
-    (js/ReactDOM.unstable_batchedUpdates forceUpdate-all it)))
-
-(def idlecall (if (exists? (.-requestIdleCallback js/window))
-                (fn [cb]
-                  (js/requestIdleCallback cb))
-                (fn [cb]
-                  (js/setTimeout cb 5000))))
-
-(def pending-commands #js [])
-
-(defn run-commands [graph]
-  (fn []
-    (let [commands pending-commands]
-      (set! pending-commands #js [])
-      (graph-proto/-transact-commands! graph commands))))
-
-(defn queue-command [graph command]
-  (when (zero? (alength pending-commands))
-    (nextTick (run-commands graph)))
-  (.push pending-commands command))
+    (js/ReactDOM.unstable_batchedUpdates forceUpdate-all it graph-value)))
 
 (def react-hitcher-process
   {:hitch2.descriptor.impl/kind
@@ -62,10 +48,21 @@
            :rerender-components
            (batched-forceUpdate effect)
            :schedule-gc
-           (idlecall
-             (fn []
-               (graph-proto/-transact! gm react-hooker
-                 [:gc])))
+           (let [t                 (:when effect)
+                 current-t         (js/Date.now)
+                 ms-till-next-gc (-> current-t
+                                       (- t)
+                                       (- ms-until-unload))]
+             (if (pos? ms-till-next-gc)
+               (js/setTimeout
+                 (fn []
+                   (graph-proto/-transact! gm react-hooker
+                     [:gc]))
+                 ms-till-next-gc)
+               (sched/idlecall
+                 (fn []
+                   (graph-proto/-transact! gm react-hooker
+                     [:gc])))))
            :delay-unload
            (js/setTimeout
              (fn []
@@ -80,7 +77,7 @@
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
     (let [graph (.-__graph c)]
-      (queue-command graph [react-hooker [:reset-component-parents c #{}]]))))
+      (sched/queue-qui-tracker-command graph [react-hooker [:reset-component-parents c #{}]]))))
 
 (defn hitchify-component! [c graph]
   (when-not (some? (.-__graph c))
@@ -103,7 +100,7 @@
                            (render-fn value rtx services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (queue-command graph [react-hooker [:reset-component-parents c focus-descriptors]])
+     (sched/queue-qui-tracker-command graph [react-hooker [:reset-component-parents c focus-descriptors]])
      result))
   ([graph unresolved c render-fn value meta services]
    (hitchify-component! c graph)
@@ -113,7 +110,7 @@
                            (render-fn value rtx meta services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (queue-command graph [react-hooker [:reset-component-parents c focus-descriptors]])
+     (sched/queue-qui-tracker-command graph [react-hooker [:reset-component-parents c focus-descriptors]])
      result)))
 
 (defn hitch-render-wrapper [nf]
