@@ -18,38 +18,40 @@
 
 (def scheduled? false)
 (def pending-commands #js [])
-(def hsubs (volatile! {}))
+(def hsubs (volatile! (transient {})))
 
 (defrecord valbox [x])
 
 (defn per-graph-change-hook-subs [_ g subs]
-  (let [graph-value (graph-proto/-get-graph g)]
+  (let [graph-value (graph-proto/-get-graph g)
+        subs        (persistent! subs)]
     (reduce-kv
       (fn [_ [setdtorval dtor] dtorval]
+        (prn subs)
         (when dtorval
           (let [val     (get graph-value dtor LOADING)
                 dtorval (:x ^valbox dtorval)]
             (when (and (loaded? val) (not= dtorval val))
               (setdtorval val)))))
       nil
-      subs))
+      subs)
 
-  (let [commands pending-commands]
-    (set! pending-commands #js [])
-    (.push commands [react-hooker
-                     [:hook-subs subs]])
-    (graph-proto/-transact-commands! g commands)))
+    (let [commands pending-commands]
+      (set! pending-commands #js [])
+      (.push commands [react-hooker
+                       [:hook-subs subs]])
+      (graph-proto/-transact-commands! g commands))))
 
 (defn run-commands [graph]
   (fn []
     (set! scheduled? false)
-    (let [subs @hsubs]
-      (vreset! hsubs {})
+    (let [subs (persistent! @hsubs)]
+      (vreset! hsubs (transient {}))
       (reduce-kv
         per-graph-change-hook-subs
         nil
         (if (empty? subs)
-          {graph {}}
+          {graph (transient {})}
           subs))
       )))
 
@@ -66,21 +68,21 @@
 
 
 (defn add-subscribe [m g x dtorval]
-  (let [gdata (get m g {})
+  (let [gdata (get m g (transient {}))
         v     (get gdata x)]
     (case v
-      false (assoc m g (dissoc gdata x))
+      false (assoc! m g (dissoc! gdata x))
       nil (do
             (schedule g)
-            (assoc m g (assoc gdata x dtorval)))
+            (assoc! m g (assoc! gdata x dtorval)))
       m)))
 
 (defn remove-subscribe [m g x]
-  (let [gdata (get m g {})
+  (let [gdata (get m g (transient {}))
         v     (get gdata x)]
     (case v
       false m
       nil (do
             (schedule g)
-            (assoc m g (assoc gdata x false)))
-      (assoc m g (dissoc gdata x)))))
+            (assoc! m g (assoc! gdata x false)))
+      (assoc! m g (dissoc! gdata x)))))

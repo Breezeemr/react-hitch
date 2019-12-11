@@ -75,6 +75,7 @@
         sel->rc             (:sel->rc state)
         t                    (js/Date.now)]
     ;(update node :change-focus assoc dtor true)
+    (prn subs)
     (loop [sel->rc sel->rc
            tounload []
            toload  []
