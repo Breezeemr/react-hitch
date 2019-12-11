@@ -20,7 +20,7 @@
 
 (defn forceUpdate [graph-value c]
   (if (instance? hook-dtor c)
-    ((:h c) (:dtor c))
+    ((:h c) (get graph-value (:dtor c) sched/LOADING))
     (when (some? (.-__graph c))
       (.forceUpdate c)))
   nil)
@@ -34,7 +34,7 @@
   unstable_batchedUpdates."
   [{:keys [components graph-value] :as rerender-component-effect}]
   (let [it (iter components)]
-    (js/ReactDOM.unstable_batchedUpdates forceUpdate-all it graph-value)))
+    (js/ReactDOM.unstable_batchedUpdates (fn [] (forceUpdate-all it graph-value)))))
 
 (def react-hitcher-process
   {:hitch2.descriptor.impl/kind

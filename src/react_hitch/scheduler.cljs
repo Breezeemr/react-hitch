@@ -42,8 +42,7 @@
 
 (defn run-commands [graph]
   (fn []
-
-    (set! scheduled? true)
+    (set! scheduled? false)
     (let [subs @hsubs]
       (vreset! hsubs {})
       (reduce-kv

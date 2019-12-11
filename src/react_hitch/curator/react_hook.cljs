@@ -91,8 +91,8 @@
             (recur (assoc sel->rc dtor rcs) tounload toload (rest subs))
             (recur (dissoc sel->rc dtor) (conj tounload dtor) toload (rest subs))))
         (-> node
-          (assoc :sel->rc sel->rc)
-            (update :change-focus into toload)
+            (assoc-in [:state :sel->rc] sel->rc)
+            (update :change-focus into (map (fn [x] [x true])) toload)
             (update :gcable-sels into
               (map (fn [x]
                      (->timedunload t x)))
