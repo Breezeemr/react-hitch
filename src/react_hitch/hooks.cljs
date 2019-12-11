@@ -7,7 +7,7 @@
     [react-hitch.graph :refer [GraphContext]]
     [react-hitch.descriptor-specs :refer [react-hooker]]
     [crinkle.component :as c]
-    [goog.async :refer :as async]))
+    [goog.async :as async]))
 
 (def LOADING sched/LOADING)
 
