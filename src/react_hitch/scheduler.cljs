@@ -70,8 +70,8 @@
 
 
 (defn add-subscribe [m g x dtorval]
-  (let [gdata (get m g (transient {}))
-        v     (get gdata x)]
+  (let [gdata (get m g)
+        v     (get (or gdata) x)]
     (case v
       false (assoc! m g (dissoc! gdata x))
       nil (do
@@ -80,8 +80,8 @@
       m)))
 
 (defn remove-subscribe [m g x]
-  (let [gdata (get m g (transient {}))
-        v     (get gdata x)]
+  (let [gdata (get m g)
+        v     (get (or gdata (transient {})) x)]
     (case v
       false m
       nil (do
