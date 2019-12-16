@@ -27,7 +27,6 @@
         subs        (persistent! subs)]
     (reduce-kv
       (fn [_ [setdtorval dtor] dtorval]
-        (prn subs)
         (when dtorval
           (let [val     (get graph-value dtor LOADING)
                 dtorval (:x ^valbox dtorval)]
