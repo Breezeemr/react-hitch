@@ -52,7 +52,7 @@
         (if (empty? subs)
           {graph (transient {})}
           subs))
-      (when (pos? (.length pending-commands))
+      (when (pos? (.-length pending-commands))
         (let [commands pending-commands]
           (set! pending-commands #js [])
           (graph-proto/-transact-commands! graph commands))))))
