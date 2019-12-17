@@ -75,23 +75,22 @@
         sel->rc             (:sel->rc state)
         t                    (js/Date.now)]
     ;(update node :change-focus assoc dtor true)
-    (prn subs)
     (loop [sel->rc sel->rc
-           tounload []
-           toload  []
+           tounload #{}
+           toload  #{}
            subs (seq subs)]
       (if-let [[[statefn dtor] v] (first subs)]
         (if v
           (if-some [rcs (-> sel->rc
                           (get  dtor))]
             (recur (assoc sel->rc dtor (conj rcs statefn)) tounload toload (rest subs))
-            (recur (assoc sel->rc dtor #{statefn}) tounload (conj toload dtor) (rest subs)))
+            (recur (assoc sel->rc dtor #{statefn}) (disj tounload dtor) (conj toload dtor) (rest subs)))
           (if-some [rcs (-> sel->rc
                           (get  dtor #{})
                             (disj statefn)
                             not-empty)]
             (recur (assoc sel->rc dtor rcs) tounload toload (rest subs))
-            (recur (dissoc sel->rc dtor) (conj tounload dtor) toload (rest subs))))
+            (recur (dissoc sel->rc dtor) (conj tounload dtor) (disj toload dtor) (rest subs))))
         (-> node
             (update :state #(-> %
                                 (assoc :sel->rc sel->rc)
