@@ -60,12 +60,12 @@
                (js/setTimeout
                  (fn []
                    (graph-proto/-transact! gm react-hooker
-                     [:gc]))
+                                           [:gc]))
                  ms-till-next-gc)
                (sched/idlecall
                  (fn []
                    (graph-proto/-transact! gm react-hooker
-                     [:gc])))))))
+                                           [:gc])))))))
        (-kill-process! [process]
          true)))})
 
@@ -74,7 +74,7 @@
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
     (let [graph (.-__graph c)]
-      (sched/queue-qui-tracker-command graph [react-hooker [:reset-component-parents c #{}]]))))
+      (sched/queue-qui-tracker-command graph c #{}))))
 
 (defn hitchify-component! [c graph]
   (when-not (some? (.-__graph c))
@@ -97,7 +97,7 @@
                            (render-fn value rtx services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (sched/queue-qui-tracker-command graph [react-hooker [:reset-component-parents c focus-descriptors]])
+     (sched/queue-qui-tracker-command graph c focus-descriptors)
      result))
   ([graph unresolved c render-fn value meta services]
    (hitchify-component! c graph)
@@ -107,7 +107,7 @@
                            (render-fn value rtx meta services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (sched/queue-qui-tracker-command graph [react-hooker [:reset-component-parents c focus-descriptors]])
+     (sched/queue-qui-tracker-command graph c focus-descriptors)
      result)))
 
 (defn hitch-render-wrapper [nf]

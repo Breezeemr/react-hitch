@@ -38,12 +38,13 @@
         rc->sel'            (if (seq new-parents)
                               (assoc rc->sel rc new-parents)
                               (dissoc rc->sel rc))
-        shared-parent-delta (volatile! {})
+        went-away (volatile! #{})
+        added (volatile! #{})
         sel->rc'            (as-> sel->rc <>
                               (reduce
                                 (fn [sel->rc sel]
                                   (when (nil? (get sel->rc sel))
-                                    (vswap! shared-parent-delta assoc sel true))
+                                    (vswap! added conj sel))
                                   (update sel->rc sel set-conj  rc))
                                 <> add-parents)
                               (reduce
@@ -52,7 +53,7 @@
                                         rcs'       (disj rcs rc)
                                         went-away? (and (pos? (count rcs)) (zero? (count rcs')))]
                                     (when went-away?
-                                      (vswap! shared-parent-delta assoc sel false))
+                                      (vswap! went-away conj sel))
                                     (if went-away?
                                       (dissoc sel->rc sel)
                                       (assoc sel->rc sel rcs'))))
@@ -63,12 +64,11 @@
                                        :sel->rc sel->rc')
                                 (update :gcable-sels into
                                   (keep (fn [x]
-                                          (when (false? (val x))
-                                            (->timedunload t (key x)))))
-                                  @shared-parent-delta))]
+                                          (->timedunload t x)))
+                                  @went-away))]
     (-> node
         (assoc :state state')
-        (update :change-focus into (remove (comp false? val)) @shared-parent-delta))))
+        (update :change-focus into (map (fn [x] (->MapEntry x true nil))) @added))))
 
 (defn handle-hook-subs [node subs]
   (let [state               (:state node)
@@ -90,7 +90,7 @@
                             (disj statefn)
                             not-empty)]
             (recur (assoc sel->rc dtor rcs) tounload toload (rest subs))
-            (recur (dissoc sel->rc dtor) (conj tounload dtor) (disj toload dtor) (rest subs))))
+            (recur (dissoc sel->rc dtor) (conj tounload dtor) toload (rest subs))))
         (-> node
             (update :state #(-> %
                                 (assoc :sel->rc sel->rc)
@@ -98,18 +98,20 @@
                                   (map (fn [x]
                                          (->timedunload t x)))
                                   tounload)))
-            (update :change-focus into (map (fn [x] [x true])) toload)
+            (update :change-focus into (map (fn [x] (->MapEntry x true nil))) toload)
             )))))
 
 (defn prep-rerender [sel->rc]
   (fn [sel]
-    (let [hooks-or-comps (sel->rc sel)]
+    (if-let [hooks-or-comps (sel->rc sel)]
       (eduction
         (map (fn [hook-or-comp]
                (if (fn? hook-or-comp)
                  (->hook-dtor hook-or-comp sel)
                  hook-or-comp)))
-        hooks-or-comps))))
+        hooks-or-comps)
+      #_(prn "missing in sel->rc" sel)
+      )))
 
 (defn do-gc [node]
   (let [{:keys [sel->rc

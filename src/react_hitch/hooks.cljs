@@ -67,8 +67,8 @@
         setdtorval (aget s 1)]
     (react/useEffect
       (fn []
-        (vswap! sched/hsubs sched/add-subscribe g [setdtorval dtor] (sched/->valbox dtorval))
-        #(vswap! sched/hsubs sched/remove-subscribe g [setdtorval dtor]))
+        (sched/add-subscribe g [setdtorval dtor] (sched/->valbox dtorval))
+        #(sched/remove-subscribe g [setdtorval dtor]))
       #js[dtor])
     dtorval))
 

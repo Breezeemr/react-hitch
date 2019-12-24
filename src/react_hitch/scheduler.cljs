@@ -1,9 +1,21 @@
 (ns react-hitch.scheduler
   (:import (goog.async run nextTick))
-  (:require [hitch2.protocols.graph-manager :as graph-proto]
+  (:require cljsjs.react
+            cljsjs.react.dom
+            [hitch2.protocols.graph-manager :as graph-proto]
             [react-hitch.curator.react-hook :as rh]
             [react-hitch.descriptor-specs :refer [react-hooker]]))
 
+(defonce ^:private LOADING
+         (reify
+           Object
+           (toString [_] "#<LOADING>")
+           IPrintWithWriter
+           (-pr-writer [_ writer opts]
+             (-write writer "#<LOADING>"))))
+
+(defn loaded? [x]
+  (not (identical? LOADING x)))
 
 (def idlecall (if (exists? (.-requestIdleCallback js/window))
                 (fn [cb]
@@ -11,80 +23,97 @@
                 (fn [cb]
                   (js/setTimeout cb 5000))))
 
-(defonce ^:private LOADING #js{})
+(defrecord GraphDepChanges [quichanges hookchanges])
 
-(defn loaded? [x]
-  (not (identical? LOADING x)))
+(defn graph-dep-changes []
+  (->GraphDepChanges (transient (hash-map)) (transient (hash-map))))
 
-(def scheduled? false)
-(def pending-commands #js [])
-(def hsubs (volatile! (transient {})))
+(def new-pending (js/Map.))
 
 (defrecord valbox [x])
 
-(defn per-graph-change-hook-subs [_ g subs]
-  (let [graph-value (graph-proto/-get-graph g)
-        subs        (persistent! subs)]
+(defn update-resolved-hooks [g subs quichanges]
+  (let [graph-value (graph-proto/-get-graph g)]
+    (reduce-kv
+      (fn [_ c descriptors]
+        (when (and (not-empty descriptors)
+                   (every?
+                     (fn [dtor]
+                       (loaded? (get graph-value dtor LOADING)))
+                     descriptors))
+          (when (some? (.-__graph c))
+            (.forceUpdate c))))
+      nil
+      quichanges)
     (reduce-kv
       (fn [_ [setdtorval dtor] dtorval]
         (when dtorval
           (let [val     (get graph-value dtor LOADING)
                 dtorval (:x ^valbox dtorval)]
-            (when (and (loaded? val) (not= dtorval val))
+            (when (not= dtorval val)
               (setdtorval val)))))
       nil
-      subs)
+      subs))
+  )
 
-    (let [commands pending-commands]
-      (set! pending-commands #js [])
-      (.push commands [react-hooker
-                       [:hook-subs subs]])
-      (graph-proto/-transact-commands! g commands))))
+(defn per-graph-change-hook-subs [{:keys [quichanges hookchanges]} g whole]
+  (let [quichanges (persistent! quichanges)
+        subs (persistent! hookchanges)]
+    (let [commands (cond-> []
+                       true             (into (map (fn [me]
+                                                     [react-hooker [:reset-component-parents (key me) (val me)]]))
+                                              quichanges)
+                       (not-empty subs) (conj [react-hooker
+                                               [:hook-subs subs]]))]
+      ;(prn commands)
+      (when (not-empty commands)
+        (graph-proto/-transact-commands! g commands)))
+    (js/ReactDOM.unstable_batchedUpdates (fn [] (update-resolved-hooks g subs quichanges)))))
 
 (defn run-commands [graph]
   (fn []
-    (set! scheduled? false)
-    (let [subs (persistent! @hsubs)]
-      (vreset! hsubs (transient {}))
-      (reduce-kv
-        per-graph-change-hook-subs
-        nil
-        (if (empty? subs)
-          {graph (transient {})}
-          subs))
-      (when (pos? (.-length pending-commands))
-        (let [commands pending-commands]
-          (set! pending-commands #js [])
-          (graph-proto/-transact-commands! graph commands))))))
-
+    (let [pending new-pending]
+      (set! new-pending (js/Map.))
+      (.forEach pending per-graph-change-hook-subs))))
+;:reset-component-parents
 (defn schedule [graph]
-  (when-not scheduled?
-    (set! scheduled? true)
-    (nextTick (run-commands graph))))
+  (nextTick (run-commands graph)))
 
 
-(defn queue-qui-tracker-command [graph command]
-  (schedule graph)
-  (.push pending-commands command))
+(defn queue-qui-tracker-command [g c descriptors]
+  (if-some [gdata (.get new-pending g)]
+    (let [gdata (:quichanges gdata)]
+      (assoc! gdata c descriptors))
+    (do
+      (.set new-pending g (graph-dep-changes))
+      (schedule g)
+      (recur g c descriptors))))
 
 
 
-(defn add-subscribe [m g x dtorval]
-  (let [gdata (get m g)
-        v     (get (or gdata) x)]
-    (case v
-      false (assoc! m g (dissoc! gdata x))
-      nil (do
-            (schedule g)
-            (assoc! m g (assoc! gdata x dtorval)))
-      m)))
+(defn add-subscribe [g x dtorval]
+  (if-some [gdata (.get new-pending g)]
+    (let [gdata (:hookchanges gdata)
+          v     (get gdata x)]
+      (case v
+        false (dissoc! gdata x)
+        nil (assoc! gdata x dtorval)
+        ))
+    (do
+      (.set new-pending g (graph-dep-changes))
+      (schedule g)
+      (recur g x dtorval)))
+  )
 
-(defn remove-subscribe [m g x]
-  (let [gdata (get m g)
-        v     (get (or gdata (transient {})) x)]
-    (case v
-      false m
-      nil (do
-            (schedule g)
-            (assoc! m g (assoc! gdata x false)))
-      (assoc! m g (dissoc! gdata x)))))
+(defn remove-subscribe [g x]
+  (if-some [gdata (.get new-pending g)]
+    (let [gdata (:hookchanges gdata)
+          v     (get gdata x)]
+      (case v
+        false nil
+        nil (assoc! gdata x false)
+        (dissoc! gdata x)))
+    (do
+      (.set new-pending g (graph-dep-changes))
+      (schedule g)
+      (recur g x))))
