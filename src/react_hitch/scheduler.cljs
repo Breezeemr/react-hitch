@@ -26,7 +26,7 @@
 (defrecord GraphDepChanges [quichanges hookchanges])
 
 (defn graph-dep-changes []
-  (->GraphDepChanges (transient (hash-map)) (transient (hash-map))))
+  (->GraphDepChanges (transient (hash-set)) (transient (hash-map))))
 
 (def new-pending (js/Map.))
 
@@ -34,15 +34,17 @@
 
 (defn update-resolved-hooks [g subs quichanges]
   (let [graph-value (graph-proto/-get-graph g)]
-    (reduce-kv
-      (fn [_ c descriptors]
-        (when (and (not-empty descriptors)
-                   (every?
-                     (fn [dtor]
-                       (loaded? (get graph-value dtor LOADING)))
-                     descriptors))
-          (when (some? (.-__graph c))
-            (.forceUpdate c))))
+    (reduce
+      (fn [_ [c descriptors]]
+        (vreset! (.-__beforedeps c) descriptors)
+        (when (and
+                (not-empty descriptors)
+                (every?
+                  (fn [dtor]
+                    (loaded? (get graph-value dtor LOADING)))
+                  descriptors)
+                (some? (.-__graph c)))
+          (.forceUpdate c)))
       nil
       quichanges)
     (reduce-kv
@@ -57,11 +59,16 @@
   )
 
 (defn per-graph-change-hook-subs [{:keys [quichanges hookchanges]} g whole]
-  (let [quichanges (persistent! quichanges)
+  (let [quichanges (into []
+                         (keep (fn [c]
+                                 (let [current @(.-__currentdeps c) ]
+                                   (when (not= current @(.-__beforedeps c))
+                                     [c current]))))
+                         (persistent! quichanges))
         subs (persistent! hookchanges)]
     (let [commands (cond-> []
-                       true             (into (map (fn [me]
-                                                     [react-hooker [:reset-component-parents (key me) (val me)]]))
+                       true             (into (keep (fn [[c current]]
+                                                      [react-hooker [:reset-component-parents c current]]))
                                               quichanges)
                        (not-empty subs) (conj [react-hooker
                                                [:hook-subs subs]]))]
@@ -80,14 +87,14 @@
   (nextTick (run-commands graph)))
 
 
-(defn queue-qui-tracker-command [g c descriptors]
+(defn queue-qui-tracker-command [g c]
   (if-some [gdata (.get new-pending g)]
     (let [gdata (:quichanges gdata)]
-      (assoc! gdata c descriptors))
+      (conj! gdata c))
     (do
       (.set new-pending g (graph-dep-changes))
       (schedule g)
-      (recur g c descriptors))))
+      (recur g c))))
 
 
 

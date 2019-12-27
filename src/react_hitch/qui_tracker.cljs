@@ -74,11 +74,14 @@
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
     (let [graph (.-__graph c)]
-      (sched/queue-qui-tracker-command graph c #{}))))
+      (vreset! (.-__currentdeps c)  #{})
+      (sched/queue-qui-tracker-command graph c))))
 
 (defn hitchify-component! [c graph]
   (when-not (some? (.-__graph c))
     (set! (.-__graph c) graph)
+    (set! (.-__beforedeps c) (volatile! #{}))
+    (set! (.-__currentdeps c) (volatile! #{}))
     (if-some [old-unmount (.-componentWillUnmount c)]
       (let [new-on-unmount (fn []
                              (this-as c
@@ -97,7 +100,8 @@
                            (render-fn value rtx services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (sched/queue-qui-tracker-command graph c focus-descriptors)
+     (vreset! (.-__currentdeps c) focus-descriptors)
+     (sched/queue-qui-tracker-command graph c)
      result))
   ([graph unresolved c render-fn value meta services]
    (hitchify-component! c graph)
@@ -107,7 +111,8 @@
                            (render-fn value rtx meta services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (sched/queue-qui-tracker-command graph c focus-descriptors)
+     (vreset! (.-__currentdeps c) focus-descriptors)
+     (sched/queue-qui-tracker-command graph c)
      result)))
 
 (defn hitch-render-wrapper [nf]
