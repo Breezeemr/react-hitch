@@ -146,44 +146,47 @@
    (fn [curator-descriptor] initial-node)
 
    ::curator/apply-command
-   (fn [curator-descriptor graph-value node command]
-     (case (nth command 0)
-       :reset-component-parents
-       (let [[_ rc new-parents] command]
-         (reset-component-parents node rc new-parents))
-       :hook-subs
-       (let [[_ sub-changes] command]
-         (handle-hook-subs node sub-changes))
-       :gc
-       (-> node
-           do-gc
-           (assoc-in [:state :gc-scheduled?]  false))))
+   (fn [curator-descriptor]
+     (fn [graph-value node command]
+       (case (nth command 0)
+         :reset-component-parents
+         (let [[_ rc new-parents] command]
+           (reset-component-parents node rc new-parents))
+         :hook-subs
+         (let [[_ sub-changes] command]
+           (handle-hook-subs node sub-changes))
+         :gc
+         (-> node
+             do-gc
+             (assoc-in [:state :gc-scheduled?] false)))))
 
    ::curator/observed-value-changes
-   (fn [curator-descriptor graph-value node parent-descriptors]
-     (update-in node [:state :dirty-sels] into parent-descriptors))
+   (fn [curator-descriptor]
+     (fn [graph-value node parent-descriptors]
+       (update-in node [:state :dirty-sels] into parent-descriptors)))
 
    ::curator/finalize
-   (fn [_ graph-value node]
-     (let [{:keys [dirty-sels
-                   gc-scheduled?
-                   gcable-sels]}
-           (-> node :state)]
-       (cond-> (assoc-in node [:state :dirty-sels] #{})
-         (pos? (count dirty-sels))
-         (update :outbox conj
-           [react-hitcher-process
-            {:type       :rerender-components
-             :components (into []
-                           (mapcat (prep-rerender (-> node :state :sel->rc)))
-                           dirty-sels)}])
-         (and (not gc-scheduled?)
-           (not-empty gcable-sels))
-         (->
-           (update :outbox conj
-             [react-hitcher-process
-              {:type :schedule-gc
-               :when (-> gcable-sels peek :time)}])
-           (assoc-in [:state :gc-scheduled?] true)))))})
+   (fn [_]
+     (fn [graph-value node]
+       (let [{:keys [dirty-sels
+                     gc-scheduled?
+                     gcable-sels]}
+             (-> node :state)]
+         (cond-> (assoc-in node [:state :dirty-sels] #{})
+                 (pos? (count dirty-sels))
+                 (update :outbox conj
+                         [react-hitcher-process
+                          {:type       :rerender-components
+                           :components (into []
+                                             (mapcat (prep-rerender (-> node :state :sel->rc)))
+                                             dirty-sels)}])
+                 (and (not gc-scheduled?)
+                      (not-empty gcable-sels))
+                 (->
+                   (update :outbox conj
+                           [react-hitcher-process
+                            {:type :schedule-gc
+                             :when (-> gcable-sels peek :time)}])
+                   (assoc-in [:state :gc-scheduled?] true))))))})
 
 (reg/def-registered-descriptor Rreact-hook react-hook-spec react-hook-impl)

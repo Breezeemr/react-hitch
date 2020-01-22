@@ -5,8 +5,9 @@
             [hitch2.descriptor-impl-registry :as reg]
             [hitch2.protocols.graph-manager :as g]))
 
-(defn return-constant [gv-tracker v]
-  v)
+(defn return-constant [ v]
+  (fn [gv-tracker]
+    v))
 
 (def-descriptor-spec constant-spec
   :not-curator

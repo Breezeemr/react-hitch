@@ -1,4 +1,4 @@
-(defproject com.breezeehr/react-hitch "0.4.2"
+(defproject com.breezeehr/react-hitch "0.5.0-SNAPSHOT"
   :description "A Clojurescript library designed to manage and cache derived data."
   :url "https://github.com/Breezeemr/react-hitch"
   :license {:name "Eclipse Public License"
@@ -10,7 +10,7 @@
                  ;[org.clojure/clojurescript "1.10.520" :scope "provided"]
                  ;[com.google.javascript/closure-compiler-unshaded "v20190325"]
                  ;[org.clojure/google-closure-library "0.0-20190213-2033d5d9"]
-                 [com.breezeehr/hitch2 "0.3.5" :exclusions [org.clojure/clojurescript ]]
+                 [com.breezeehr/hitch2 "0.4.0-SNAPSHOT" :exclusions [org.clojure/clojurescript ]]
                  [crinkle "2.0.0" :exclusions [org.clojure/clojurescript ]]
                  [thheller/shadow-cljs "2.8.74"]
                  [com.breezeehr/quiescent "0.3.0"
