@@ -16,4 +16,4 @@
 
 (defrecord hook-dtor [h dtor])
 
-(def ms-until-unload 10000)
+(def ms-until-unload 60000)
