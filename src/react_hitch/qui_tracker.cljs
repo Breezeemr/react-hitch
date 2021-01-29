@@ -13,6 +13,7 @@
             [hitch2.tx-manager.halting :as halting]
             [react-hitch.curator.react-hook :as rh]
             [react-hitch.scheduler :as sched]
+            [goog.object :as gobj]
             [breeze.quiescent :as q]
             [react-hitch.descriptor-specs :refer [react-hitcher-process-spec
                                                   react-hook-spec react-hooker
@@ -21,7 +22,7 @@
 (defn forceUpdate [graph-value c]
   (if (instance? hook-dtor c)
     ((:h c) (get graph-value (:dtor c) sched/LOADING))
-    (when (some? (.-__graph c))
+    (when (some? (gobj/get c "__graph"))
       (.forceUpdate c)))
   nil)
 
@@ -73,15 +74,15 @@
 
 (defn flush-deps-on-unmount {:jsdoc ["@this {*}"]} []
   (this-as c
-    (let [graph (.-__graph c)]
-      (vreset! (.-__currentdeps c)  #{})
+    (let [graph (gobj/get c "__graph")]
+      (vreset! (gobj/get c "__currentdeps")  #{})
       (sched/queue-qui-tracker-command graph c))))
 
 (defn hitchify-component! [c graph]
-  (when-not (some? (.-__graph c))
-    (set! (.-__graph c) graph)
-    (set! (.-__beforedeps c) (volatile! #{}))
-    (set! (.-__currentdeps c) (volatile! #{}))
+  (when-not (some? (gobj/get c "__graph"))
+    (gobj/set c  "__graph" graph)
+    (gobj/set c "__beforedeps"  (volatile! #{}))
+    (gobj/set c "__currentdeps"  (volatile! #{}))
     (if-some [old-unmount (.-componentWillUnmount c)]
       (let [new-on-unmount (fn []
                              (this-as c
@@ -100,7 +101,7 @@
                            (render-fn value rtx services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (vreset! (.-__currentdeps c) focus-descriptors)
+     (vreset! (gobj/get c "__currentdeps") focus-descriptors)
      (sched/queue-qui-tracker-command graph c)
      result))
   ([graph unresolved c render-fn value meta services]
@@ -111,7 +112,7 @@
                            (render-fn value rtx meta services)
                            unresolved)
          focus-descriptors (tx-manager/finish-tx! rtx)]
-     (vreset! (.-__currentdeps c) focus-descriptors)
+     (vreset! (gobj/get c "__currentdeps") focus-descriptors)
      (sched/queue-qui-tracker-command graph c)
      result)))
 

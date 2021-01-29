@@ -2,6 +2,7 @@
   (:import (goog.async run nextTick))
   (:require cljsjs.react
             cljsjs.react.dom
+            [goog.object :as gobj]
             [hitch2.protocols.graph-manager :as graph-proto]
             [react-hitch.curator.react-hook :as rh]
             [react-hitch.descriptor-specs :refer [react-hooker]]))
@@ -36,14 +37,14 @@
   (let [graph-value (graph-proto/-get-graph g)]
     (reduce
       (fn [_ [c descriptors]]
-        (vreset! (.-__beforedeps c) descriptors)
+        (vreset! (gobj/get c "__beforedeps") descriptors)
         (when (and
                 (not-empty descriptors)
                 (every?
                   (fn [dtor]
                     (loaded? (get graph-value dtor LOADING)))
                   descriptors)
-                (some? (.-__graph c)))
+                (some? (gobj/get c "__graph")))
           (.forceUpdate c)))
       nil
       quichanges)
@@ -61,8 +62,8 @@
 (defn per-graph-change-hook-subs [{:keys [quichanges hookchanges]} g whole]
   (let [quichanges (into []
                          (keep (fn [c]
-                                 (let [current @(.-__currentdeps c) ]
-                                   (when (not= current @(.-__beforedeps c))
+                                 (let [current @(gobj/get c "__currentdeps") ]
+                                   (when (not= current @(gobj/get c "__beforedeps"))
                                      [c current]))))
                          (persistent! quichanges))
         subs (persistent! hookchanges)]
