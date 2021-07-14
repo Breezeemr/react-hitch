@@ -1,7 +1,8 @@
 {:paths     ["src" "src" "src"],
  :mvn/repos {"releases"  {:url "s3://breezepackages/releases"},
              "snapshots" {:url "s3://breezepackages/snapshots"}}
- :aliases   {:dev    {:extra-deps {devcards                      {:mvn/version "0.2.5"},
+ :aliases   {:dev    {:extra-deps {devcards/devcards             {:mvn/version "0.2.5"},
+                                   thheller/shadow-cljs    {:mvn/version "2.11.14"}
                                    com.bhauman/cljs-test-display {:mvn/version "0.1.1"},
                                    com.bhauman/figwheel-main     {:mvn/version "0.2.0"}}}
              :test   {:extra-paths ["test"],
@@ -14,6 +15,5 @@
              com.breezeehr/quiescent {:exclusions [cljsjs/react-dom cljsjs/react
                                                    cljsjs/create-react-class],
                                       :local/root "../static-libs/quiescent-0.3.0.jar"},
-             crinkle                 {:mvn/version "2.0.0", :exclusions [org.clojure/clojurescript]},
-             org.clojure/clojure     {:mvn/version "1.10.1"},
-             thheller/shadow-cljs    {:mvn/version "2.11.14"}},}
+             crinkle/crinkle         {:mvn/version "2.0.0", :exclusions [org.clojure/clojurescript]},
+             org.clojure/clojure     {:mvn/version "1.10.1"}},}
